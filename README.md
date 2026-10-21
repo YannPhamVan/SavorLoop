@@ -23,7 +23,7 @@ This repository is currently in the planning stage. It contains project document
 ## Project documents
 
 - [Product specification](_docs/product-spec.md): current behavior and acceptance rules.
-- [Task backlog](_docs/tasks.md): task definitions, acceptance criteria, evidence, dependencies, priorities, and estimates. GitHub Issues are the public execution tracker; issue links are recorded alongside the local task definitions.
+- [Task backlog](_docs/tasks.md): task definitions, acceptance criteria, evidence, dependencies, priorities, and estimates. [GitHub Issues](https://github.com/YannPhamVan/SavorLoop/issues) is the public execution tracker; each task links to its issue.
 - [Evaluation and roadmap](_docs/evaluation.md): rubric mapping, review findings, score paths, estimates, and open decisions.
 - [Agent team](_docs/agent-team.md): roles, permissions, and collaboration boundaries.
 - [Agent process](_docs/agent-process.md): issue-driven implementation and evidence workflow.

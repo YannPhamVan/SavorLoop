@@ -11,6 +11,7 @@ SavorLoop is a single-user cooking assistant. The planned stack is a Lovable-gen
 - [Agent team](_docs/agent-team.md) defines roles and permissions.
 - [Agent process](_docs/agent-process.md) defines task selection, implementation, review, and evidence practices.
 - [PM role](_docs/team/pm.md) defines task grooming responsibilities and boundaries.
+- [Software Engineer role](_docs/team/software-engineer.md) defines implementation responsibilities and boundaries.
 - [Task template](_docs/task-template.md) is the required four-section issue template.
 - [Evaluation and roadmap](_docs/evaluation.md) maps the supplied rubric and records assumptions.
 - [Initial plan](_docs/plan.md) preserves the original brainstorming; the dated addendum records later decisions.

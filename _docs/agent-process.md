@@ -2,9 +2,27 @@
 
 ## Roles
 
+- Orchestrator - the main session launches the PM, Engineer, and QA as subagents. It does not groom, implement, or test itself.
 - PM - grooms a task before anyone implements it, follows [`_docs/team/pm.md`](team/pm.md).
 - Engineer - implements one groomed task, follows [`_docs/team/software-engineer.md`](team/software-engineer.md).
 - QA - checks the result against the acceptance criteria, follows [`_docs/team/qa-engineer.md`](team/qa-engineer.md).
+
+## Lifecycle
+
+1. The orchestrator picks the next open issue from the backlog.
+2. The PM grooms it using the required task template.
+3. The Engineer implements the groomed issue.
+4. QA verifies the result against the issue's acceptance criteria.
+5. On FAIL, return to step 3 with the QA comment as input; the Engineer addresses the reported failures without changing acceptance criteria.
+6. On PASS, the orchestrator closes the issue.
+7. Repeat from step 1 until the backlog is empty.
+
+## Rules
+
+- Do not skip step 2.
+- The Engineer does not close the issue.
+- QA does not fix code; QA only outputs PASS or FAIL.
+- The orchestrator closes the issue only after QA outputs PASS.
 
 ## Selecting work
 
@@ -26,10 +44,11 @@
 
 - Link the GitHub Issue in the branch/PR title or description when an authorized issue exists.
 - In the issue or PR, record what changed, exact test/build commands and pass/fail result, and relevant workflow, deployment, dashboard, alert, or demo links.
-- The engineer comments on the issue with a summary of the work and verification, and leaves the issue open. The reviewer checks acceptance criteria and evidence before an authorized person closes it.
+- The engineer comments on the issue with a summary of the work and verification, and leaves the issue open.
 - QA independently checks the running result against every issue acceptance criterion, runs and reports tests, and posts a PASS or FAIL verdict comment. QA does not modify code; a FAIL leaves the issue open for the engineer to address.
+- The orchestrator closes the issue only after a PASS verdict. No other role closes it.
 - Do not mark work done based only on code/configuration presence. A live system criterion needs observable runtime evidence.
-- A reviewer checks acceptance criteria and evidence. The owner approves deployments, external services, tracker publication, and unresolved product decisions.
+- A reviewer may check acceptance criteria and evidence but does not replace QA's verdict or close the issue. The owner approves deployments, external services, tracker publication, and unresolved product decisions.
 - If work is blocked, leave the task open, state the blocker and evidence gathered, and do not create a duplicate issue or silently substitute a weaker criterion.
 
 ## Issue template

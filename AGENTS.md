@@ -12,6 +12,7 @@ SavorLoop is a single-user cooking assistant. The planned stack is a Lovable-gen
 - [Agent process](_docs/agent-process.md) defines task selection, implementation, review, and evidence practices.
 - [PM role](_docs/team/pm.md) defines task grooming responsibilities and boundaries.
 - [Software Engineer role](_docs/team/software-engineer.md) defines implementation responsibilities and boundaries.
+- [QA Engineer role](_docs/team/qa-engineer.md) defines independent acceptance verification and verdict reporting.
 - [Task template](_docs/task-template.md) is the required four-section issue template.
 - [Evaluation and roadmap](_docs/evaluation.md) maps the supplied rubric and records assumptions.
 - [Initial plan](_docs/plan.md) preserves the original brainstorming; the dated addendum records later decisions.
@@ -42,3 +43,11 @@ SavorLoop is a single-user cooking assistant. The planned stack is a Lovable-gen
 - Never claim a task, test, alert, deployment, tracker update, or rollback succeeded without observable evidence.
 - Link changes to their GitHub Issue when the public tracker is authorized and available; otherwise record the local task ID and evidence in the pull request or task notes.
 - Do not publish issues, deploy, or change external services without the repository owner's authorization.
+
+## Important changes and publishing
+
+- Treat changes to product behavior, architecture, shared project guidance, issue acceptance criteria, tests, CI, deployment, or observability as important.
+- After focused checks pass, automatically create a focused commit and push it to the configured remote on the current branch unless the user says otherwise.
+- Stage only files belonging to the active task. Do not include unrelated user changes.
+- Never force-push, rewrite published history, deploy, or create tracker items under this rule.
+- If checks fail, the remote has diverged, a push is rejected, or unrelated changes cannot be safely excluded, do not publish; report the blocker.

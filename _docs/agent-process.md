@@ -4,6 +4,7 @@
 
 - PM - grooms a task before anyone implements it, follows [`_docs/team/pm.md`](team/pm.md).
 - Engineer - implements one groomed task, follows [`_docs/team/software-engineer.md`](team/software-engineer.md).
+- QA - checks the result against the acceptance criteria, follows [`_docs/team/qa-engineer.md`](team/qa-engineer.md).
 
 ## Selecting work
 
@@ -26,6 +27,7 @@
 - Link the GitHub Issue in the branch/PR title or description when an authorized issue exists.
 - In the issue or PR, record what changed, exact test/build commands and pass/fail result, and relevant workflow, deployment, dashboard, alert, or demo links.
 - The engineer comments on the issue with a summary of the work and verification, and leaves the issue open. The reviewer checks acceptance criteria and evidence before an authorized person closes it.
+- QA independently checks the running result against every issue acceptance criterion, runs and reports tests, and posts a PASS or FAIL verdict comment. QA does not modify code; a FAIL leaves the issue open for the engineer to address.
 - Do not mark work done based only on code/configuration presence. A live system criterion needs observable runtime evidence.
 - A reviewer checks acceptance criteria and evidence. The owner approves deployments, external services, tracker publication, and unresolved product decisions.
 - If work is blocked, leave the task open, state the blocker and evidence gathered, and do not create a duplicate issue or silently substitute a weaker criterion.

@@ -8,6 +8,7 @@ from backend.app.recipe_suggestions import (
     RecipeModelOutput,
     RecipeProviderUnavailable,
     RecipeQuotaExhausted,
+    RecipeFeedbackContext,
     RecipeStockItem,
 )
 
@@ -25,6 +26,7 @@ class GeminiRecipeProvider:
         stock: list[RecipeStockItem],
         requested_servings: int,
         correction: str | None = None,
+        feedback_context: list[RecipeFeedbackContext] | None = None,
     ) -> object:
         api_key = os.environ.get("GEMINI_API_KEY", "").strip()
         if not api_key:
@@ -42,6 +44,20 @@ class GeminiRecipeProvider:
             "serving counts or missing-ingredient fields.\n"
             f"Available stock: {json.dumps(stock_payload, ensure_ascii=True)}"
         )
+        if feedback_context:
+            feedback_payload = [
+                {
+                    "recipe": item.recipe.model_dump(mode="json"),
+                    "explicitly_liked_adjustments": item.liked_adjustments,
+                }
+                for item in feedback_context
+            ]
+            prompt += (
+                "\nOptional notebook context contains only highly rated cooked recipes and "
+                "adjustments the user explicitly liked. Use it as inspiration; do not infer "
+                "preferences from comments or ratings.\n"
+                f"Notebook context: {json.dumps(feedback_payload, ensure_ascii=True)}"
+            )
         if correction:
             prompt += f"\nCorrection: {correction}"
 

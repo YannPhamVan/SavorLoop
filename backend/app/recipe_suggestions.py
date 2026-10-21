@@ -51,6 +51,11 @@ class RecipeSuggestion(RecipeModelOutput):
     stock_explanation: str = Field(min_length=1, max_length=300)
 
 
+class RecipeFeedbackContext(BaseModel):
+    recipe: RecipeSuggestion
+    liked_adjustments: list[str]
+
+
 class RecipeStockItem(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
@@ -67,6 +72,7 @@ class RecipeProvider(Protocol):
         stock: list[RecipeStockItem],
         requested_servings: int,
         correction: str | None = None,
+        feedback_context: list[RecipeFeedbackContext] | None = None,
     ) -> object: ...
 
 
@@ -140,15 +146,24 @@ class RecipeSuggestionService:
     def __init__(self, provider: RecipeProvider) -> None:
         self.provider = provider
 
-    def suggest(self, inventory: Iterable[Ingredient], servings: int) -> RecipeSuggestion:
+    def suggest(
+        self,
+        inventory: Iterable[Ingredient],
+        servings: int,
+        feedback_context: list[RecipeFeedbackContext] | None = None,
+    ) -> RecipeSuggestion:
         stock = select_recipe_context(inventory)
         if not stock:
             raise RecipeInventoryUnavailable
 
+        feedback = feedback_context or []
         correction: str | None = None
         for attempt in range(2):
             try:
-                raw_output = self.provider.generate(stock, servings, correction)
+                if feedback:
+                    raw_output = self.provider.generate(stock, servings, correction, feedback)
+                else:
+                    raw_output = self.provider.generate(stock, servings, correction)
             except (RecipeAPIKeyMissing, RecipeQuotaExhausted, RecipeProviderUnavailable):
                 raise
             except Exception:

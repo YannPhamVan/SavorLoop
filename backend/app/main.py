@@ -6,7 +6,7 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 from sqlalchemy import select, text
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, selectinload
 
 from backend.app.database import engine
 from backend.app.gemini_recipes import GeminiRecipeProvider
@@ -19,7 +19,16 @@ from backend.app.inventory_updates import (
     parse_inventory_plan,
     validate_inventory_plan,
 )
-from backend.app.models import Base, Ingredient
+from backend.app.models import Base, CookingAttempt, Ingredient, NotebookRecipe
+from backend.app.notebook import (
+    CookingAttemptRead,
+    CookingAttemptWrite,
+    NotebookRecipeCreate,
+    NotebookRecipeRead,
+    make_attempt,
+    recipe_to_read,
+    select_recipe_feedback,
+)
 from backend.app.recipe_suggestions import (
     RecipeAPIKeyMissing,
     RecipeInventoryUnavailable,
@@ -87,6 +96,67 @@ def list_inventory(session: Session = Depends(get_session)) -> list[Ingredient]:
     return list(session.scalars(statement))
 
 
+@app.get("/api/notebook", response_model=list[NotebookRecipeRead])
+def list_notebook(session: Session = Depends(get_session)) -> list[NotebookRecipeRead]:
+    recipes = session.scalars(
+        select(NotebookRecipe)
+        .options(selectinload(NotebookRecipe.attempts))
+        .order_by(NotebookRecipe.id)
+    )
+    return [recipe_to_read(recipe) for recipe in recipes]
+
+
+@app.post(
+    "/api/notebook",
+    response_model=NotebookRecipeRead,
+    status_code=status.HTTP_201_CREATED,
+)
+def confirm_recipe_cooked(
+    payload: NotebookRecipeCreate,
+    session: Session = Depends(get_session),
+) -> NotebookRecipeRead:
+    recipe = NotebookRecipe(snapshot=payload.recipe.model_dump(mode="json"))
+    recipe.attempts.append(make_attempt(payload.attempt))
+    session.add(recipe)
+    try:
+        session.commit()
+    except SQLAlchemyError as exc:
+        session.rollback()
+        raise HTTPException(
+            status_code=503,
+            detail="The cooking note could not be saved. No changes were saved; try again.",
+        ) from exc
+    session.refresh(recipe)
+    return recipe_to_read(recipe)
+
+
+@app.post(
+    "/api/notebook/{recipe_id}/attempts",
+    response_model=CookingAttemptRead,
+    status_code=status.HTTP_201_CREATED,
+)
+def add_cooking_attempt(
+    recipe_id: int,
+    payload: CookingAttemptWrite,
+    session: Session = Depends(get_session),
+) -> CookingAttempt:
+    recipe = session.get(NotebookRecipe, recipe_id)
+    if recipe is None:
+        raise HTTPException(status_code=404, detail="Notebook recipe not found")
+    attempt = make_attempt(payload)
+    recipe.attempts.append(attempt)
+    try:
+        session.commit()
+    except SQLAlchemyError as exc:
+        session.rollback()
+        raise HTTPException(
+            status_code=503,
+            detail="The cooking attempt could not be saved. No changes were saved; try again.",
+        ) from exc
+    session.refresh(attempt)
+    return attempt
+
+
 @app.post("/api/suggestions", response_model=RecipeSuggestion)
 def create_recipe_suggestion(
     suggestion_request: RecipeSuggestionRequest,
@@ -94,8 +164,9 @@ def create_recipe_suggestion(
     suggester: RecipeSuggestionService = Depends(get_recipe_suggester),
 ) -> RecipeSuggestion:
     inventory = list(session.scalars(select(Ingredient)))
+    feedback_context = select_recipe_feedback(session)
     try:
-        return suggester.suggest(inventory, suggestion_request.servings)
+        return suggester.suggest(inventory, suggestion_request.servings, feedback_context)
     except RecipeAPIKeyMissing as exc:
         raise HTTPException(
             status_code=503,

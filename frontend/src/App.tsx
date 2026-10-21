@@ -23,6 +23,12 @@ interface IngredientDraft {
   expiryDate: string;
 }
 
+interface InventoryUpdateResult {
+  status: "updated";
+  message: string;
+  updated_count: number;
+}
+
 const emptyDraft = (category: IngredientCategory = "rotating"): IngredientDraft => ({
   category,
   name: "",
@@ -51,6 +57,9 @@ export default function App() {
   const [filter, setFilter] = useState<CategoryFilter>("all");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [naturalRequest, setNaturalRequest] = useState("");
+  const [updatingInventory, setUpdatingInventory] = useState(false);
+  const [updateStatus, setUpdateStatus] = useState<{ kind: "pending" | "success" | "error"; message: string } | null>(null);
   const [error, setError] = useState("");
 
   async function loadInventory() {
@@ -146,6 +155,39 @@ export default function App() {
     }
   }
 
+  async function submitNaturalUpdate(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setUpdatingInventory(true);
+    setUpdateStatus({ kind: "pending", message: "Checking your update..." });
+
+    try {
+      const response = await fetch("/api/inventory/natural-language", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ text: naturalRequest }),
+      });
+      if (!response.ok) throw new Error(await readError(response));
+
+      const result = await response.json() as InventoryUpdateResult;
+      if (result.status !== "updated" || typeof result.updated_count !== "number") {
+        throw new Error("The update was not confirmed. Check inventory before trying again.");
+      }
+
+      setNaturalRequest("");
+      setUpdateStatus({ kind: "success", message: result.message });
+      await loadInventory();
+    } catch (cause) {
+      setUpdateStatus({
+        kind: "error",
+        message: cause instanceof Error
+          ? cause.message
+          : "The update could not be completed. Check the item name and details, then try again.",
+      });
+    } finally {
+      setUpdatingInventory(false);
+    }
+  }
+
   return (
     <main className="app-shell">
       <header className="topbar">
@@ -180,6 +222,39 @@ export default function App() {
 
       <section className="inventory-workspace" aria-label="Inventory management">
         <div className="inventory-panel">
+          <form className="natural-update" onSubmit={(event) => void submitNaturalUpdate(event)}>
+            <div className="natural-update-heading">
+              <div>
+                <p className="eyebrow">QUICK UPDATE</p>
+                <h2>What changed?</h2>
+              </div>
+              <span>Inventory</span>
+            </div>
+            <label className="field-label" htmlFor="natural-inventory-update">Describe the stock change</label>
+            <div className="natural-update-controls">
+              <textarea
+                id="natural-inventory-update"
+                className="text-input natural-update-input"
+                maxLength={1000}
+                placeholder="Mark olive oil unavailable, or use 50 g mushrooms"
+                required
+                rows={2}
+                value={naturalRequest}
+                onChange={(event) => setNaturalRequest(event.target.value)}
+              />
+              <button className="primary-button natural-update-button" type="submit" disabled={updatingInventory || !naturalRequest.trim()}>
+                {updatingInventory ? "Updating..." : "Update stock"}
+                {!updatingInventory && <span aria-hidden="true">→</span>}
+              </button>
+            </div>
+            {updateStatus && (
+              <p className={`update-feedback ${updateStatus.kind}`} role={updateStatus.kind === "error" ? "alert" : "status"}>
+                {updateStatus.kind === "pending" && <span className="loader" aria-hidden="true" />}
+                {updateStatus.message}
+              </p>
+            )}
+          </form>
+
           <div className="list-toolbar">
             <div>
               <p className="eyebrow">STOCK LIST</p>

@@ -18,7 +18,7 @@ Lovable-generated React/TypeScript frontend, FastAPI backend, SQLAlchemy, SQLite
 
 ## Project status
 
-The repository includes a structured single-user inventory with pantry staples and rotating ingredients. Suggestions, cooking history, natural-language updates, authentication, and deployment are not implemented yet.
+The repository includes a structured single-user inventory with pantry staples and rotating ingredients. Natural-language inventory updates use a server-side interpreter boundary and deterministic validation; no production provider is configured. Suggestions, cooking history, authentication, and deployment are not implemented yet.
 
 ## Local setup
 
@@ -42,6 +42,15 @@ npm run build
 
 The backend uses `DATABASE_URL` for its SQLAlchemy connection. Its local default is `sqlite:///./savorloop.db`, which creates `savorloop.db` in the process working directory. To use a different local SQLite file in PowerShell, set `$env:DATABASE_URL = "sqlite:///./local.db"` before starting the backend. Start it from the repository root with `uv run uvicorn backend.app.main:app --reload`.
 
+Natural-language updates return a safe unavailable response unless an interpreter is configured on the backend. For a keyless local UI walkthrough, explicitly opt into the limited demo interpreter before starting the API:
+
+```powershell
+$env:SAVORLOOP_INVENTORY_INTERPRETER = "demo"
+uv run uvicorn backend.app.main:app --reload
+```
+
+The demo accepts requests such as `mark olive oil unavailable` and `use 50 g mushrooms`; deterministic inventory checks still apply. Without that setting, natural-language updates remain unavailable and the ordinary inventory controls continue to work. No provider credentials are used by the demo or exposed to the frontend. Automated tests inject a stub interpreter directly.
+
 `GET /health` checks process liveness without touching the database. `GET /ready` executes a database connectivity check and returns HTTP 503 if it fails.
 
 For the Inventory screen, run the backend from the repository root and leave it running:
@@ -58,7 +67,7 @@ npm ci
 npm run dev
 ```
 
-Open the local URL printed by Vite. The development server proxies `/api` requests to `http://127.0.0.1:8000`. Inventory tables are created automatically in the configured SQLite database. Run the focused inventory API checks from the repository root with `uv run pytest backend/tests/test_inventory.py`.
+Open the local URL printed by Vite. The development server proxies `/api` requests to `http://127.0.0.1:8000` by default; set `$env:SAVORLOOP_API_TARGET` before `npm run dev` to use another local API address. Inventory tables are created automatically in the configured SQLite database. Run the focused inventory API checks from the repository root with `uv run pytest backend/tests/test_inventory.py`.
 
 ## Project documents
 

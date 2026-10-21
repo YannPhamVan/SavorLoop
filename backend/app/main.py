@@ -9,6 +9,15 @@ from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from sqlalchemy.orm import Session
 
 from backend.app.database import engine
+from backend.app.inventory_updates import (
+    InventoryInterpreter,
+    InventoryOperationRejected,
+    InventoryUpdateRequest,
+    InventoryUpdateResult,
+    configured_inventory_interpreter,
+    parse_inventory_plan,
+    validate_inventory_plan,
+)
 from backend.app.models import Base, Ingredient
 from backend.app.schemas import IngredientRead, IngredientWrite
 
@@ -20,6 +29,7 @@ async def lifespan(_: FastAPI):
 
 
 app = FastAPI(title="SavorLoop API", lifespan=lifespan)
+app.state.inventory_interpreter = configured_inventory_interpreter()
 
 
 @app.exception_handler(RequestValidationError)
@@ -34,6 +44,10 @@ async def validation_error_response(_: Request, exc: RequestValidationError) -> 
 def get_session() -> Iterator[Session]:
     with Session(engine) as session:
         yield session
+
+
+def get_inventory_interpreter(request: Request) -> InventoryInterpreter:
+    return request.app.state.inventory_interpreter
 
 
 @app.get("/health")
@@ -55,6 +69,62 @@ def ready() -> dict[str, str]:
 def list_inventory(session: Session = Depends(get_session)) -> list[Ingredient]:
     statement = select(Ingredient).order_by(Ingredient.category, Ingredient.name, Ingredient.id)
     return list(session.scalars(statement))
+
+
+@app.post("/api/inventory/natural-language", response_model=InventoryUpdateResult)
+def update_inventory_from_natural_language(
+    update_request: InventoryUpdateRequest,
+    session: Session = Depends(get_session),
+    interpreter: InventoryInterpreter = Depends(get_inventory_interpreter),
+) -> InventoryUpdateResult:
+    correction: str | None = None
+    validated_changes = None
+
+    for attempt in range(2):
+        try:
+            model_output = interpreter.interpret(update_request.text, correction)
+        except Exception as exc:
+            detail = (
+                "Natural-language updates are not configured or are temporarily unavailable. "
+                "Use the inventory controls instead."
+            )
+            raise HTTPException(status_code=503, detail=detail) from exc
+
+        try:
+            plan = parse_inventory_plan(model_output)
+            validated_changes = validate_inventory_plan(session, plan)
+            break
+        except InventoryOperationRejected as exc:
+            session.rollback()
+            if attempt == 1:
+                raise HTTPException(status_code=422, detail=str(exc)) from exc
+            correction = str(exc)
+
+    if validated_changes is None:
+        raise HTTPException(status_code=422, detail="The inventory update could not be validated.")
+
+    for ingredient, operation in validated_changes:
+        if operation.action == "set_available":
+            ingredient.available = True
+        elif operation.action == "set_unavailable":
+            ingredient.available = False
+        else:
+            ingredient.quantity = (ingredient.quantity or 0) - (operation.amount or 0)
+
+    try:
+        session.commit()
+    except SQLAlchemyError as exc:
+        session.rollback()
+        raise HTTPException(
+            status_code=503,
+            detail="Inventory could not be updated. No changes were saved; try again.",
+        ) from exc
+
+    return InventoryUpdateResult(
+        status="updated",
+        message="Inventory updated.",
+        updated_count=len(validated_changes),
+    )
 
 
 @app.post(

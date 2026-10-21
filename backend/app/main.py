@@ -9,6 +9,7 @@ from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from sqlalchemy.orm import Session
 
 from backend.app.database import engine
+from backend.app.gemini_recipes import GeminiRecipeProvider
 from backend.app.inventory_updates import (
     InventoryInterpreter,
     InventoryOperationRejected,
@@ -19,6 +20,16 @@ from backend.app.inventory_updates import (
     validate_inventory_plan,
 )
 from backend.app.models import Base, Ingredient
+from backend.app.recipe_suggestions import (
+    RecipeAPIKeyMissing,
+    RecipeInventoryUnavailable,
+    RecipeProviderUnavailable,
+    RecipeQuotaExhausted,
+    RecipeResponseInvalid,
+    RecipeSuggestion,
+    RecipeSuggestionRequest,
+    RecipeSuggestionService,
+)
 from backend.app.schemas import IngredientRead, IngredientWrite
 
 
@@ -30,6 +41,7 @@ async def lifespan(_: FastAPI):
 
 app = FastAPI(title="SavorLoop API", lifespan=lifespan)
 app.state.inventory_interpreter = configured_inventory_interpreter()
+app.state.recipe_suggester = RecipeSuggestionService(GeminiRecipeProvider())
 
 
 @app.exception_handler(RequestValidationError)
@@ -48,6 +60,10 @@ def get_session() -> Iterator[Session]:
 
 def get_inventory_interpreter(request: Request) -> InventoryInterpreter:
     return request.app.state.inventory_interpreter
+
+
+def get_recipe_suggester(request: Request) -> RecipeSuggestionService:
+    return request.app.state.recipe_suggester
 
 
 @app.get("/health")
@@ -69,6 +85,42 @@ def ready() -> dict[str, str]:
 def list_inventory(session: Session = Depends(get_session)) -> list[Ingredient]:
     statement = select(Ingredient).order_by(Ingredient.category, Ingredient.name, Ingredient.id)
     return list(session.scalars(statement))
+
+
+@app.post("/api/suggestions", response_model=RecipeSuggestion)
+def create_recipe_suggestion(
+    suggestion_request: RecipeSuggestionRequest,
+    session: Session = Depends(get_session),
+    suggester: RecipeSuggestionService = Depends(get_recipe_suggester),
+) -> RecipeSuggestion:
+    inventory = list(session.scalars(select(Ingredient)))
+    try:
+        return suggester.suggest(inventory, suggestion_request.servings)
+    except RecipeAPIKeyMissing as exc:
+        raise HTTPException(
+            status_code=503,
+            detail="Recipe suggestions are not configured. Set GEMINI_API_KEY in the backend .env and restart the API.",
+        ) from exc
+    except RecipeQuotaExhausted as exc:
+        raise HTTPException(
+            status_code=429,
+            detail="Gemini's free-tier quota is unavailable. Wait for its quota to reset or check your Google AI Studio limits.",
+        ) from exc
+    except RecipeProviderUnavailable as exc:
+        raise HTTPException(
+            status_code=503,
+            detail="Recipe suggestions are temporarily unavailable. Check GEMINI_MODEL and provider status, then try again.",
+        ) from exc
+    except RecipeInventoryUnavailable as exc:
+        raise HTTPException(
+            status_code=422,
+            detail="Add at least one available ingredient before requesting a recipe.",
+        ) from exc
+    except RecipeResponseInvalid as exc:
+        raise HTTPException(
+            status_code=502,
+            detail="The recipe response could not be validated after one correction attempt. No suggestion was saved; try again later.",
+        ) from exc
 
 
 @app.post("/api/inventory/natural-language", response_model=InventoryUpdateResult)

@@ -29,6 +29,23 @@ interface InventoryUpdateResult {
   updated_count: number;
 }
 
+interface RecipeIngredient {
+  name: string;
+  quantity: number;
+  unit: string;
+}
+
+interface RecipeSuggestion {
+  title: string;
+  ingredients: RecipeIngredient[];
+  steps: string[];
+  preparation_time_minutes: number;
+  substitutions: string[];
+  servings: number;
+  missing_ingredients: RecipeIngredient[];
+  stock_explanation: string;
+}
+
 const emptyDraft = (category: IngredientCategory = "rotating"): IngredientDraft => ({
   category,
   name: "",
@@ -51,6 +68,7 @@ async function readError(response: Response): Promise<string> {
 }
 
 export default function App() {
+  const [activeView, setActiveView] = useState<"inventory" | "suggestions">("inventory");
   const [ingredients, setIngredients] = useState<Ingredient[]>([]);
   const [draft, setDraft] = useState<IngredientDraft>(() => emptyDraft());
   const [editingId, setEditingId] = useState<number | null>(null);
@@ -61,6 +79,10 @@ export default function App() {
   const [updatingInventory, setUpdatingInventory] = useState(false);
   const [updateStatus, setUpdateStatus] = useState<{ kind: "pending" | "success" | "error"; message: string } | null>(null);
   const [error, setError] = useState("");
+  const [requestedServings, setRequestedServings] = useState("2");
+  const [recipe, setRecipe] = useState<RecipeSuggestion | null>(null);
+  const [recipeLoading, setRecipeLoading] = useState(false);
+  const [recipeError, setRecipeError] = useState("");
 
   async function loadInventory() {
     setLoading(true);
@@ -188,6 +210,32 @@ export default function App() {
     }
   }
 
+  async function submitRecipeRequest(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const servings = Number(requestedServings);
+    if (!Number.isInteger(servings) || servings < 1 || servings > 12) {
+      setRecipeError("Choose a serving count from 1 to 12.");
+      return;
+    }
+
+    setRecipe(null);
+    setRecipeError("");
+    setRecipeLoading(true);
+    try {
+      const response = await fetch("/api/suggestions", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ servings }),
+      });
+      if (!response.ok) throw new Error(await readError(response));
+      setRecipe(await response.json() as RecipeSuggestion);
+    } catch (cause) {
+      setRecipeError(cause instanceof Error ? cause.message : "A recipe could not be generated.");
+    } finally {
+      setRecipeLoading(false);
+    }
+  }
+
   return (
     <main className="app-shell">
       <header className="topbar">
@@ -195,23 +243,28 @@ export default function App() {
           <span className="wordmark-mark" aria-hidden="true">S</span>
           <span>SavorLoop</span>
         </a>
-        <span className="topbar-label">Kitchen inventory</span>
+        <nav className="view-nav" aria-label="Kitchen views">
+          <button className={activeView === "inventory" ? "view-tab active" : "view-tab"} type="button" aria-current={activeView === "inventory" ? "page" : undefined} onClick={() => setActiveView("inventory")}>Inventory</button>
+          <button className={activeView === "suggestions" ? "view-tab active" : "view-tab"} type="button" aria-current={activeView === "suggestions" ? "page" : undefined} onClick={() => setActiveView("suggestions")}>Suggestions</button>
+        </nav>
         <span className="topbar-dot" aria-label="Single-user kitchen" />
       </header>
 
       <section className="page-heading" aria-labelledby="page-title">
         <div>
-          <p className="eyebrow">YOUR KITCHEN / INVENTORY</p>
-          <h1 id="page-title">What's on hand<span>?</span></h1>
+          <p className="eyebrow">YOUR KITCHEN / {activeView === "inventory" ? "INVENTORY" : "SUGGESTIONS"}</p>
+          <h1 id="page-title">{activeView === "inventory" ? <>What's on hand<span>?</span></> : <>What's for dinner<span>?</span></>}</h1>
         </div>
-        <div className="inventory-summary" aria-label="Inventory totals">
-          <div><strong>{pantryCount.toString().padStart(2, "0")}</strong><span>Pantry</span></div>
-          <div><strong>{rotatingCount.toString().padStart(2, "0")}</strong><span>Fresh &amp; rotating</span></div>
-          <div><strong>{ingredients.length.toString().padStart(2, "0")}</strong><span>Total items</span></div>
-        </div>
+        {activeView === "inventory" && (
+          <div className="inventory-summary" aria-label="Inventory totals">
+            <div><strong>{pantryCount.toString().padStart(2, "0")}</strong><span>Pantry</span></div>
+            <div><strong>{rotatingCount.toString().padStart(2, "0")}</strong><span>Fresh &amp; rotating</span></div>
+            <div><strong>{ingredients.length.toString().padStart(2, "0")}</strong><span>Total items</span></div>
+          </div>
+        )}
       </section>
 
-      {error && (
+      {activeView === "inventory" && error && (
         <div className="error-banner" role="alert">
           <span>{error}</span>
           <button className="text-button" type="button" onClick={() => void loadInventory()}>
@@ -220,6 +273,7 @@ export default function App() {
         </div>
       )}
 
+      {activeView === "inventory" ? (
       <section className="inventory-workspace" aria-label="Inventory management">
         <div className="inventory-panel">
           <form className="natural-update" onSubmit={(event) => void submitNaturalUpdate(event)}>
@@ -409,7 +463,90 @@ export default function App() {
           </form>
         </aside>
       </section>
-      <footer className="app-footer"><span>Simple stock. Better cooking.</span><span>SAVORLOOP <i>·</i> INVENTORY</span></footer>
+      ) : (
+        <section className="suggestion-workspace" aria-label="Recipe suggestions">
+          <form className="suggestion-controls" onSubmit={(event) => void submitRecipeRequest(event)}>
+            <div>
+              <p className="eyebrow">ON-DEMAND RECIPE</p>
+              <h2>Cook from what you have</h2>
+            </div>
+            <label className="field-label" htmlFor="requested-servings">Servings</label>
+            <input
+              id="requested-servings"
+              className="text-input servings-input"
+              type="number"
+              min="1"
+              max="12"
+              step="1"
+              required
+              value={requestedServings}
+              onChange={(event) => setRequestedServings(event.target.value)}
+            />
+            <button className="primary-button" type="submit" disabled={recipeLoading}>
+              {recipeLoading ? "Finding a recipe..." : "Suggest a recipe"}
+              {!recipeLoading && <span aria-hidden="true">→</span>}
+            </button>
+            <p className="suggestion-note">Uses available inventory. Suggestions are not saved.</p>
+          </form>
+
+          <div className="suggestion-result" aria-live="polite">
+            {recipeLoading ? (
+              <div className="suggestion-state" role="status"><span className="loader" />Building a recipe from your stock</div>
+            ) : recipeError ? (
+              <div className="suggestion-state suggestion-error" role="alert">{recipeError}</div>
+            ) : recipe ? (
+              <article className="recipe-result">
+                <header className="recipe-heading">
+                  <div>
+                    <p className="eyebrow">YOUR SUGGESTION / {recipe.servings} SERVINGS</p>
+                    <h2>{recipe.title}</h2>
+                  </div>
+                  <span className="recipe-time">{recipe.preparation_time_minutes} min</span>
+                </header>
+                <div className="recipe-columns">
+                  <div className="recipe-ingredients">
+                    <h3>Ingredients</h3>
+                    <ul>
+                      {recipe.ingredients.map((item, index) => (
+                        <li key={`${item.name}-${index}`}><span>{item.name}</span><strong>{item.quantity} {item.unit}</strong></li>
+                      ))}
+                    </ul>
+                    {recipe.missing_ingredients.length > 0 && (
+                      <div className="missing-list">
+                        <h3>To pick up</h3>
+                        <ul>
+                          {recipe.missing_ingredients.map((item) => (
+                            <li key={item.name}><span>{item.name}</span><strong>{item.quantity} {item.unit}</strong></li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+                  </div>
+                  <div className="recipe-method">
+                    <h3>Method</h3>
+                    <ol>
+                      {recipe.steps.map((step, index) => <li key={index}>{step}</li>)}
+                    </ol>
+                  </div>
+                </div>
+                <footer className="recipe-notes">
+                  <p><strong>Why it fits</strong>{recipe.stock_explanation}</p>
+                  {recipe.substitutions.length > 0 && (
+                    <p><strong>Substitutions</strong>{recipe.substitutions.join(" · ")}</p>
+                  )}
+                </footer>
+              </article>
+            ) : (
+              <div className="suggestion-state suggestion-empty">
+                <span className="empty-symbol" aria-hidden="true">+</span>
+                <h2>Start with your stock.</h2>
+                <p>Choose a serving count to get a recipe suggestion.</p>
+              </div>
+            )}
+          </div>
+        </section>
+      )}
+      <footer className="app-footer"><span>Simple stock. Better cooking.</span><span>SAVORLOOP <i>·</i> {activeView.toUpperCase()}</span></footer>
     </main>
   );
 }

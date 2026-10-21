@@ -18,7 +18,7 @@ Lovable-generated React/TypeScript frontend, FastAPI backend, SQLAlchemy, SQLite
 
 ## Project status
 
-The repository includes a structured single-user inventory with pantry staples and rotating ingredients. Natural-language inventory updates use a server-side interpreter boundary and deterministic validation; no production provider is configured. Suggestions, cooking history, authentication, and deployment are not implemented yet.
+The repository includes a structured single-user inventory, server-side natural-language inventory updates, and on-demand Gemini recipe suggestions. Suggestions are validated and never persisted. Cooking history, authentication, and deployment are not implemented yet.
 
 ## Local setup
 
@@ -27,7 +27,7 @@ Prerequisites: Python 3.11 or newer with [uv](https://docs.astral.sh/uv/), and N
 Run these commands from the repository root:
 
 ```powershell
-uv sync
+uv sync --locked
 uv run python -c "from backend.app.main import app"
 uv run pytest
 ```
@@ -40,13 +40,43 @@ npm ci
 npm run build
 ```
 
-The backend uses `DATABASE_URL` for its SQLAlchemy connection. Its local default is `sqlite:///./savorloop.db`, which creates `savorloop.db` in the process working directory. To use a different local SQLite file in PowerShell, set `$env:DATABASE_URL = "sqlite:///./local.db"` before starting the backend. Start it from the repository root with `uv run uvicorn backend.app.main:app --reload`.
+The backend uses `DATABASE_URL` for its SQLAlchemy connection. Its local default is `sqlite:///./savorloop.db`, which creates `savorloop.db` in the process working directory. To use a different local SQLite file in PowerShell, set `$env:DATABASE_URL = "sqlite:///./local.db"` before starting the backend.
+
+### Gemini recipe suggestions
+
+Recipe suggestions use Google's official `google-genai` SDK and the configurable `GEMINI_MODEL` (default `gemini-3.8-flash`). Put the Gemini key in the gitignored `.env` file at the repository root; never commit or share its contents:
+
+```dotenv
+GEMINI_API_KEY=replace-with-your-Google-AI-Studio-key
+GEMINI_MODEL=gemini-3.8-flash
+```
+
+Start the API from the repository root so `uv` loads those settings:
+
+```powershell
+uv run --env-file .env uvicorn backend.app.main:app --reload
+```
+
+Provider calls use structured JSON output, do not enable tools or grounding, and set `store=False`. Gemini free-tier quotas are limited and may change. Google may use content submitted through the free tier to improve its products; send only data appropriate for that service. The app sends available ingredient names, quantities, units, and expiry dates to generate a recipe. The real-API smoke test below uses fabricated inventory only.
+
+Ordinary automated tests use stub providers and never need `.env` or a live API key:
+
+```powershell
+uv run pytest backend/tests/test_recipe_suggestions.py
+uv run pytest
+```
+
+To separately verify real generation, run the synthetic-inventory smoke test once the key is configured. It does not read or write the application database and prints only the generated recipe from fabricated stock:
+
+```powershell
+uv run --env-file .env python -m backend.smoke_test_recipe
+```
 
 Natural-language updates return a safe unavailable response unless an interpreter is configured on the backend. For a keyless local UI walkthrough, explicitly opt into the limited demo interpreter before starting the API:
 
 ```powershell
 $env:SAVORLOOP_INVENTORY_INTERPRETER = "demo"
-uv run uvicorn backend.app.main:app --reload
+uv run --env-file .env uvicorn backend.app.main:app --reload
 ```
 
 The demo accepts requests such as `mark olive oil unavailable` and `use 50 g mushrooms`; deterministic inventory checks still apply. Without that setting, natural-language updates remain unavailable and the ordinary inventory controls continue to work. No provider credentials are used by the demo or exposed to the frontend. Automated tests inject a stub interpreter directly.
@@ -56,7 +86,7 @@ The demo accepts requests such as `mark olive oil unavailable` and `use 50 g mus
 For the Inventory screen, run the backend from the repository root and leave it running:
 
 ```powershell
-uv run uvicorn backend.app.main:app --reload
+uv run --env-file .env uvicorn backend.app.main:app --reload
 ```
 
 In a second terminal, start the frontend:

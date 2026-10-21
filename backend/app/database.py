@@ -2,8 +2,13 @@ import os
 
 from sqlalchemy import create_engine
 from sqlalchemy.engine import Engine
+from sqlalchemy.orm import DeclarativeBase
 
 DEFAULT_DATABASE_URL = "sqlite:///./savorloop.db"
+
+
+class Base(DeclarativeBase):
+    pass
 
 
 def create_database_engine(database_url: str | None = None) -> Engine:

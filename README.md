@@ -18,7 +18,7 @@ Lovable-generated React/TypeScript frontend, FastAPI backend, SQLAlchemy, SQLite
 
 ## Project status
 
-The repository contains an empty React/TypeScript frontend and FastAPI backend foundation. No cooking features, LLM integration, authentication, deployment, or user data are included.
+The repository includes a structured single-user inventory with pantry staples and rotating ingredients. Suggestions, cooking history, natural-language updates, authentication, and deployment are not implemented yet.
 
 ## Local setup
 
@@ -43,6 +43,22 @@ npm run build
 The backend uses `DATABASE_URL` for its SQLAlchemy connection. Its local default is `sqlite:///./savorloop.db`, which creates `savorloop.db` in the process working directory. To use a different local SQLite file in PowerShell, set `$env:DATABASE_URL = "sqlite:///./local.db"` before starting the backend. Start it from the repository root with `uv run uvicorn backend.app.main:app --reload`.
 
 `GET /health` checks process liveness without touching the database. `GET /ready` executes a database connectivity check and returns HTTP 503 if it fails.
+
+For the Inventory screen, run the backend from the repository root and leave it running:
+
+```powershell
+uv run uvicorn backend.app.main:app --reload
+```
+
+In a second terminal, start the frontend:
+
+```powershell
+Set-Location frontend
+npm ci
+npm run dev
+```
+
+Open the local URL printed by Vite. The development server proxies `/api` requests to `http://127.0.0.1:8000`. Inventory tables are created automatically in the configured SQLite database. Run the focused inventory API checks from the repository root with `uv run pytest backend/tests/test_inventory.py`.
 
 ## Project documents
 

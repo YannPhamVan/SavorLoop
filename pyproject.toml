@@ -1,0 +1,20 @@
+[project]
+name = "savorloop-backend"
+version = "0.1.0"
+description = "SavorLoop FastAPI foundation"
+requires-python = ">=3.11"
+dependencies = [
+    "fastapi>=0.115,<1",
+    "sqlalchemy>=2,<3",
+    "uvicorn>=0.34,<1",
+]
+
+[dependency-groups]
+dev = [
+    "httpx>=0.27,<1",
+    "pytest>=8,<9",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["backend/tests"]
+pythonpath = ["."]

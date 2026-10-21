@@ -18,7 +18,31 @@ Lovable-generated React/TypeScript frontend, FastAPI backend, SQLAlchemy, SQLite
 
 ## Project status
 
-This repository is currently in the planning stage. It contains project documentation but no application source, runnable local setup, tests, container, deployment, or demonstration yet. Those are tracked as backlog work; no working command or public deployment is claimed here.
+The repository contains an empty React/TypeScript frontend and FastAPI backend foundation. No cooking features, LLM integration, authentication, deployment, or user data are included.
+
+## Local setup
+
+Prerequisites: Python 3.11 or newer with [uv](https://docs.astral.sh/uv/), and Node.js with npm.
+
+Run these commands from the repository root:
+
+```powershell
+uv sync
+uv run python -c "from backend.app.main import app"
+uv run pytest
+```
+
+For the frontend, also from the repository root:
+
+```powershell
+Set-Location frontend
+npm ci
+npm run build
+```
+
+The backend uses `DATABASE_URL` for its SQLAlchemy connection. Its local default is `sqlite:///./savorloop.db`, which creates `savorloop.db` in the process working directory. To use a different local SQLite file in PowerShell, set `$env:DATABASE_URL = "sqlite:///./local.db"` before starting the backend. Start it from the repository root with `uv run uvicorn backend.app.main:app --reload`.
+
+`GET /health` checks process liveness without touching the database. `GET /ready` executes a database connectivity check and returns HTTP 503 if it fails.
 
 ## Project documents
 

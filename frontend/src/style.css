@@ -1,0 +1,29 @@
+:root {
+  font-family: Georgia, "Times New Roman", serif;
+  color: #26342c;
+  background: #f5f4ef;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  min-width: 320px;
+  min-height: 100vh;
+  margin: 0;
+}
+
+main {
+  display: grid;
+  min-height: 100vh;
+  place-items: center;
+}
+
+h1 {
+  margin: 0;
+  font-size: 2.5rem;
+  font-weight: 500;
+}

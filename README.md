@@ -18,7 +18,7 @@ Lovable-generated React/TypeScript frontend, FastAPI backend, SQLAlchemy, SQLite
 
 ## Project status
 
-The repository includes a structured single-user inventory, server-side natural-language inventory updates, and on-demand Gemini recipe suggestions. Suggestions are validated and never persisted. Cooking history, authentication, and deployment are not implemented yet.
+The application includes a structured single-user inventory, server-side natural-language inventory updates, on-demand Gemini recipe suggestions, and a Cooking Notebook. Suggestions are validated and remain transient; a recipe enters the Notebook only after the user confirms it was cooked. Attempts preserve ratings and feedback, and only highly rated recipes and explicitly liked adjustments inform later suggestions. Authentication and deployment are not implemented.
 
 ## Local setup
 
@@ -37,6 +37,7 @@ For the frontend, also from the repository root:
 ```powershell
 Set-Location frontend
 npm ci
+npm test
 npm run build
 ```
 

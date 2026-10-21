@@ -1,1 +1,33 @@
 # SavorLoop
+
+SavorLoop is a single-user cooking assistant that helps turn ingredients already at home into practical meals, prioritizes items that may expire soon, and learns from recipes the user has actually cooked.
+
+## What it will do
+
+- Track pantry staples as available or unavailable, and rotating ingredients with optional quantities, units, and expiry dates.
+- Support conventional inventory editing and natural-language stock updates. AI may interpret a request, but deterministic backend code validates and applies every change.
+- Generate complete recipes on demand from current stock, including quantities, steps, serving count, missing ingredients, substitutions, and a short explanation.
+- Save a recipe only after the user confirms it was cooked, then retain ratings, comments, changes, substitutions, and attempt history.
+- Use a small, explainable selection of highly rated cooking history to inform later suggestions.
+
+The MVP has no accounts, shared inventory, initial taste questionnaire, recipe catalogue, or model training. Generated suggestions are not saved automatically.
+
+## Planned stack
+
+Lovable-generated React/TypeScript frontend, FastAPI backend, SQLAlchemy, SQLite, and a configurable LLM provider. SQLite is the initial database; data access stays behind SQLAlchemy. Hosting and telemetry providers remain undecided until their persistence, automation, and observability support are checked.
+
+## Project status
+
+This repository is currently in the planning stage. It contains project documentation but no application source, runnable local setup, tests, container, deployment, or demonstration yet. Those are tracked as backlog work; no working command or public deployment is claimed here.
+
+## Project documents
+
+- [Product specification](_docs/product-spec.md): current behavior and acceptance rules.
+- [Task backlog](_docs/tasks.md): task definitions, acceptance criteria, evidence, dependencies, priorities, and estimates. GitHub Issues are the public execution tracker; issue links are recorded alongside the local task definitions.
+- [Evaluation and roadmap](_docs/evaluation.md): rubric mapping, review findings, score paths, estimates, and open decisions.
+- [Agent team](_docs/agent-team.md): roles, permissions, and collaboration boundaries.
+- [Agent process](_docs/agent-process.md): issue-driven implementation and evidence workflow.
+- [Initial plan](_docs/plan.md): original brainstorming and decisions, with a dated status addendum.
+- [Repository instructions](AGENTS.md): project context and coding boundaries for coding agents.
+
+The evaluation checklist records the 12 criteria supplied for the 2026 AI Dev Tools Zoomcamp. Their official wording has not been independently re-verified in this repository.

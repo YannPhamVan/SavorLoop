@@ -233,3 +233,7 @@ Mandatory Zoomcamp engineering criteria should be built into the plan from the b
 
 ---
 *Initial planning document; update it as the project progresses.*
+
+## 10. Later status
+
+The original brainstorming above is preserved. Subsequent decisions and the current repository status are recorded in the [plan alignment addendum](plan-alignment-addendum.md); the current product behavior and implementation backlog are maintained in [product-spec.md](product-spec.md) and [tasks.md](tasks.md).

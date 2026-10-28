@@ -68,6 +68,10 @@ uv run python scripts/verify.py
 
 This single command runs the backend unit/integration suite, frontend tests, and frontend production build. It returns a nonzero exit code if any check fails. The backend and frontend tests use isolated test data and stub providers, so no `.env` file or live AI credentials are needed. CI-compatible JUnit reports are written to `.test-results/backend.xml` and `.test-results/frontend.xml`; this generated directory is git-ignored.
 
+### Continuous integration
+
+The [CI workflow](.github/workflows/ci.yml) runs these checks automatically for every pull request, regardless of its target branch. To run the same verification locally, install from the lockfiles with `uv sync --locked` and `npm --prefix frontend ci`, then run `uv run python scripts/verify.py` from the repository root. No Gemini key, `.env` file, or other live provider credentials are needed.
+
 The backend uses `DATABASE_URL` for its SQLAlchemy connection. Its local default is `sqlite:///./savorloop.db`, which creates `savorloop.db` in the process working directory. To use a different local SQLite file in PowerShell, set `$env:DATABASE_URL = "sqlite:///./local.db"` before starting the backend.
 
 ### Gemini recipe suggestions

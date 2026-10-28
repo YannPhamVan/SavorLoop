@@ -28,18 +28,16 @@ Run these commands from the repository root:
 
 ```powershell
 uv sync --locked
-uv run python -c "from backend.app.main import app"
-uv run pytest
+npm --prefix frontend ci
 ```
 
-For the frontend, also from the repository root:
+Run the complete keyless test and build check from the repository root:
 
 ```powershell
-Set-Location frontend
-npm ci
-npm test
-npm run build
+uv run python scripts/verify.py
 ```
+
+This single command runs the backend unit/integration suite, frontend tests, and frontend production build. It returns a nonzero exit code if any check fails. The backend and frontend tests use isolated test data and stub providers, so no `.env` file or live AI credentials are needed. CI-compatible JUnit reports are written to `.test-results/backend.xml` and `.test-results/frontend.xml`; this generated directory is git-ignored.
 
 The backend uses `DATABASE_URL` for its SQLAlchemy connection. Its local default is `sqlite:///./savorloop.db`, which creates `savorloop.db` in the process working directory. To use a different local SQLite file in PowerShell, set `$env:DATABASE_URL = "sqlite:///./local.db"` before starting the backend.
 
@@ -60,11 +58,10 @@ uv run --env-file .env uvicorn backend.app.main:app --reload
 
 Provider calls use structured JSON output, do not enable tools or grounding, and set `store=False`. Gemini free-tier quotas are limited and may change. Google may use content submitted through the free tier to improve its products; send only data appropriate for that service. The app sends available ingredient names, quantities, units, and expiry dates to generate a recipe. The real-API smoke test below uses fabricated inventory only.
 
-Ordinary automated tests use stub providers and never need `.env` or a live API key:
+The verification command above uses stub providers and never needs `.env` or a live API key. To run focused backend tests separately:
 
 ```powershell
 uv run pytest backend/tests/test_recipe_suggestions.py
-uv run pytest
 ```
 
 To separately verify real generation, run the synthetic-inventory smoke test once the key is configured. It does not read or write the application database and prints only the generated recipe from fabricated stock:

@@ -22,7 +22,36 @@ The application includes a structured single-user inventory, server-side natural
 
 ## Local setup
 
-Prerequisites: Python 3.11 or newer with [uv](https://docs.astral.sh/uv/), and Node.js with npm.
+Native-setup prerequisites: Python 3.11 or newer with [uv](https://docs.astral.sh/uv/), and Node.js with npm.
+
+### Run the complete app with Docker Compose
+
+Prerequisite: Docker Engine or Docker Desktop with the Compose plugin. From the repository root, build and start the frontend and backend:
+
+```sh
+docker compose up --build
+```
+
+Open [http://localhost:8080](http://localhost:8080) for the app. Compose waits for the backend's database-aware `/ready` check before starting the frontend. The frontend is served by Nginx and proxies `/api` requests to the backend. The backend is also available locally at `http://localhost:8000`; `/health` checks process liveness and `/ready` checks SQLite connectivity. Recipe suggestions require a backend Gemini key, which this local Compose setup intentionally does not read from `.env`; inventory and notebook features work without one.
+
+SQLite is stored inside the backend container at `/data/savorloop.db` and backed by the named Docker volume `savorloop-sqlite-data`. The database is not stored in the container's writable layer. `docker compose stop` followed by `docker compose up -d` preserves data, as does `docker compose down` followed by `docker compose up -d`. **Do not use `docker compose down --volumes` unless you intend to delete the database.** This is a local volume only; it does not demonstrate or guarantee persistence in any hosted deployment.
+
+Stop the app before making a file-level backup so SQLite has flushed its state. Run these commands from the repository root (the archive is written to the current directory):
+
+```sh
+docker compose stop
+docker run --rm -v savorloop-sqlite-data:/data:ro -v "${PWD}:/backup" alpine:3.21 cp /data/savorloop.db /backup/savorloop.db
+```
+
+To restore `./savorloop.db` from the repository root, first stop the app, then replace the volume's database and restart:
+
+```sh
+docker compose stop
+docker run --rm -v savorloop-sqlite-data:/data -v "${PWD}:/backup:ro" alpine:3.21 sh -c 'test -f /backup/savorloop.db && rm -f /data/savorloop.db* && cp /backup/savorloop.db /data/savorloop.db'
+docker compose up -d
+```
+
+The backup/restore helper uses the official Alpine image and needs Docker image access. Keep backup files secure and outside the application volume. To remove the app containers and network while retaining the database, use `docker compose down`; remove the named database volume only when you explicitly want to discard its data.
 
 Run these commands from the repository root:
 

@@ -20,6 +20,8 @@ React/TypeScript frontend, FastAPI backend, and SQLAlchemy over SQLite. Recipe s
 
 The application includes a structured single-user inventory, server-side natural-language inventory updates, on-demand Gemini recipe suggestions, and a Cooking Notebook. Suggestions are validated and remain transient; a recipe enters the Notebook only after the user confirms it was cooked. Attempts preserve ratings and feedback, and only highly rated recipes and explicitly liked adjustments inform later suggestions. Authentication is not implemented. The Render Free educational preview was deployed and verified on 2026-11-05, then suspended by the owner; its SQLite data was ephemeral and may have been lost. See the [Render Free educational-preview facts and limitations](_docs/render-free-demo.md).
 
+Task implementation and QA status are recorded in the [public GitHub Issues tracker](https://github.com/YannPhamVan/SavorLoop/issues). This application-status summary does not imply that an open issue has passed QA or that the project has earned an evaluation score.
+
 ## Prerequisites and one-command setup
 
 For the one-command app startup, install Docker Engine or Docker Desktop with the Compose plugin. From the repository root, run:

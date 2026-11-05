@@ -1,6 +1,6 @@
 # SavorLoop Backlog
 
-The backlog is prepared to seed the existing public GitHub Issues tracker. Issues and a GitHub Project are not yet present; publishing issues requires owner authorization. Each item below is intended as a one-session deliverable. Copy the full item into an issue so its acceptance criteria and evidence stay with the work.
+The [public GitHub Issues tracker](https://github.com/YannPhamVan/SavorLoop/issues) is the task-status source of truth; this file preserves the original planning and acceptance criteria. As observed on 2026-11-05, issues #1–#13 are closed and #14 is open. Do not infer current task status from this backlog. Publishing additional issues requires owner authorization. Each item below is intended as a one-session deliverable. Copy the full item into an issue so its acceptance criteria and evidence stay with the work.
 
 ## Shared context
 

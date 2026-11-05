@@ -4,7 +4,7 @@
 
 Checked against Render's official documentation on 2026-10-28 and rechecked on 2026-11-05. Render Free is selected only for a no-cost, disposable educational preview. This is a narrow exception to the product's durable-hosting requirement, not a hosting decision for production or for user data.
 
-The Free web-service compute plan is $0. This does not mean total workspace usage or every resource is unconditionally free. No paid resource, add-on, custom domain, account, service, or secret setup is authorized by this decision.
+The Free web-service compute plan is $0. This does not mean total workspace usage or every resource is unconditionally free. No paid resource or add-on is in scope. Use Render's generated `onrender.com` address; a custom domain and application secrets are not needed for the inventory demonstration.
 
 ## Documented Free-service behavior and limits
 
@@ -19,9 +19,9 @@ The Free web-service compute plan is $0. This does not mean total workspace usag
 
 ## CI/CD and observed project status
 
-The repository's [CI workflow](../.github/workflows/ci.yml) runs for pull requests only and performs dependency installation, tests, and a frontend build. It does not deploy. The merged [PR #16](https://github.com/YannPhamVan/SavorLoop/pull/16) has a [passing CI run](https://github.com/YannPhamVan/SavorLoop/actions/runs/40706899477). No Render service configuration or deployment workflow is present in the repository; CD is not configured. Render's documented ability to auto-deploy from a connected Git provider is not evidence that this project has auto-deploy enabled.
+The repository's [CI workflow](../.github/workflows/ci.yml) runs for pull requests only and performs dependency installation, tests, and a frontend build. It does not deploy. The merged [PR #16](https://github.com/YannPhamVan/SavorLoop/pull/16) has a [passing CI run](https://github.com/YannPhamVan/SavorLoop/actions/runs/40706899477). The planned Render service uses manual deploys; no auto-deploy or CI-gated deployment is configured. A Render service deployment is CD, but it does not change the PR-only GitHub Actions workflow. Verify the actual service's setting in the dashboard before reporting its deploy mode.
 
-No public demo URL or live service has been configured or verified. The live deployment and demo criteria remain **BLOCKED** pending separate, explicit owner authorization. No account, service, resource, domain, or secret was created or handled for this task. Once authorized, the limited demo must use fabricated disposable data, and `/health`, database-aware `/ready`, and one basic inventory add/view flow must be observed while the instance is active. The ephemeral reset warning must be prominent in the demo.
+The owner authorized use of their existing Render account and provisioning/deployment of one Free web service on 2026-11-05. No account creation is needed. The planned service uses the generated `onrender.com` URL; no custom domain or application secret is needed for the inventory walkthrough. The [Render-specific Docker image](../render.Dockerfile) serves the frontend and API from one service and displays an ephemeral-data warning. No service is provisioned yet, so there is no public demo URL or observed runtime behavior to report. After deployment, use fabricated disposable data and verify `/health`, database-aware `/ready`, and one basic inventory add/view flow while the instance is active.
 
 The durable local development path remains [Docker Compose with its named SQLite volume](../README.md); that local persistence does not establish hosted persistence. This preview makes no production-suitability, uptime, availability, performance, data-retention, recovery, rollback-test, or evaluation-score guarantee.
 

@@ -1,9 +1,11 @@
 from collections.abc import Iterator
 from contextlib import asynccontextmanager
+from pathlib import Path
 
 from fastapi import Depends, FastAPI, HTTPException, Request, Response, status
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
+from fastapi.staticfiles import StaticFiles
 from sqlalchemy import select, text
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from sqlalchemy.orm import Session, selectinload
@@ -51,6 +53,15 @@ async def lifespan(_: FastAPI):
 app = FastAPI(title="SavorLoop API", lifespan=lifespan)
 app.state.inventory_interpreter = configured_inventory_interpreter()
 app.state.recipe_suggester = RecipeSuggestionService(GeminiRecipeProvider())
+
+
+def mount_frontend(application: FastAPI, frontend_directory: Path) -> None:
+    if frontend_directory.is_dir():
+        application.mount(
+            "/",
+            StaticFiles(directory=frontend_directory, html=True),
+            name="frontend",
+        )
 
 
 @app.exception_handler(RequestValidationError)
@@ -299,3 +310,6 @@ def delete_ingredient(ingredient_id: int, session: Session = Depends(get_session
     session.delete(ingredient)
     session.commit()
     return Response(status_code=status.HTTP_204_NO_CONTENT)
+
+
+mount_frontend(app, Path(__file__).resolve().parents[2] / "frontend" / "dist")

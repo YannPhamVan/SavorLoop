@@ -178,7 +178,11 @@ async function readError(response: Response): Promise<string> {
   return "The request could not be completed.";
 }
 
-export default function App() {
+export default function App({
+  ephemeralDemo = import.meta.env.VITE_EPHEMERAL_DEMO === "true",
+}: {
+  ephemeralDemo?: boolean;
+} = {}) {
   const [activeView, setActiveView] = useState<"inventory" | "suggestions" | "notebook">("inventory");
   const [ingredients, setIngredients] = useState<Ingredient[]>([]);
   const [draft, setDraft] = useState<IngredientDraft>(() => emptyDraft());
@@ -424,6 +428,14 @@ export default function App() {
         </nav>
         <span className="topbar-dot" aria-label="Single-user kitchen" />
       </header>
+
+      {ephemeralDemo && (
+        <aside className="ephemeral-demo-notice" aria-label="Temporary demo data warning">
+          <strong>Disposable educational demo:</strong> inventory data is temporary and may be erased when
+          the service spins down, restarts, or redeploys. Use fabricated data only; no data recovery is
+          available.
+        </aside>
+      )}
 
       <section className="page-heading" aria-labelledby="page-title">
         <div>

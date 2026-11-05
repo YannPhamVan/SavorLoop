@@ -46,6 +46,21 @@ afterEach(() => {
   vi.restoreAllMocks();
 });
 
+describe("ephemeral demo notice", () => {
+  it("warns that demo inventory data is temporary", async () => {
+    fetchMock.mockImplementation(async (input) => {
+      if (String(input) === "/api/inventory") return jsonResponse([]);
+      throw new Error(`Unexpected fetch: ${String(input)}`);
+    });
+
+    render(<App ephemeralDemo />);
+
+    expect(await screen.findByText(/Disposable educational demo:/)).toBeTruthy();
+    expect(screen.getByText(/spins down, restarts, or redeploys/)).toBeTruthy();
+    expect(screen.getByText(/Use fabricated data only/)).toBeTruthy();
+  });
+});
+
 describe("Cooking Notebook UI", () => {
   it("keeps a suggestion out of the notebook until confirmation and submits only selected liked adjustments", async () => {
     let savedNotebook: Array<{

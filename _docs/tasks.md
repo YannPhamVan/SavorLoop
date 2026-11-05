@@ -119,16 +119,16 @@ Evidence: Workflow file and passing PR run URL.
 
 ## 10. Qualify and optionally deploy an ephemeral educational demo on Render Free ([#10](https://github.com/YannPhamVan/SavorLoop/issues/10))
 Goal: Document a no-cost educational preview without presenting it as durable hosting or production deployment.
-Description: Render Free is selected for a narrow disposable demonstration. Record dated official limits, data-loss behavior, rollback limitations, and the repository's actual CI/CD status. Live provisioning and demonstration remain blocked until separate explicit owner authorization; the product's durable-hosting requirement and local Compose persistence are unchanged.
+Description: Render Free is selected for a narrow disposable demonstration. Record dated official limits, data-loss behavior, rollback limitations, and the repository's actual CI/CD status. The owner authorized one Free service deployment on 2026-11-05; use the generated Render domain and fabricated data only. The product's durable-hosting requirement and local Compose persistence are unchanged.
 Priority: Useful score improvement
 Estimate: 1.5 h
-Dependencies: T7, T9; separate owner authorization for any account, service, resource, domain, secret, or deployment action
+Dependencies: T7, T9; owner authorization for the Free service and deployment (recorded 2026-11-05)
 Acceptance criteria:
 - The [Render Free fact check](render-free-demo.md) cites current official documentation and accurately states spin-down, startup, ephemeral SQLite loss, no persistent disk, no data-retention guarantee, and lack of production suitability.
 - It records the $0 Free compute plan without claiming all workspace use is unconditionally free, and covers the monthly instance-hour allowance, included bandwidth/build-pipeline usage and outcomes, platform restarts, and single-instance limit.
-- Until separate explicit authorization, all live deployment/demo criteria remain BLOCKED; no Render account/service/resource, domain, secret, or deployment is created or handled, and the issue stays open.
-- After authorization only, a public demo can be checked for `/health`, database-aware `/ready`, and adding/viewing one fabricated disposable inventory item while active, with a prominent ephemeral-data warning.
-- CI-only behavior is evidenced as PR checks in [#9](https://github.com/YannPhamVan/SavorLoop/issues/9) and [PR #16](https://github.com/YannPhamVan/SavorLoop/pull/16); CD is not claimed without service/workflow evidence.
+- The owner has authorized one Free web service and its deployment; use the generated Render domain, without creating an account, custom domain, paid resource/add-on, or unnecessary application secret.
+- A live demo URL opens, `/health` and database-aware `/ready` return success, and one fabricated disposable inventory item can be added and viewed while the service is active; the UI prominently warns of ephemeral data loss.
+- CI-only behavior is evidenced as PR checks in [#9](https://github.com/YannPhamVan/SavorLoop/issues/9) and [PR #16](https://github.com/YannPhamVan/SavorLoop/pull/16); the Render service's actual deploy mode is reported accurately.
 - Render's documented rollback limit is distinguished from tested rollback and from data recovery; no tested rollback, data recovery, production suitability, or evaluation score is claimed.
 Evidence: Dated official-source fact check, [passing CI run](https://github.com/YannPhamVan/SavorLoop/actions/runs/40706899477), explicit live-action authorization gate, and runtime evidence only if separately authorized.
 

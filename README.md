@@ -72,6 +72,12 @@ This single command runs the backend unit/integration suite, frontend tests, and
 
 The [CI workflow](.github/workflows/ci.yml) runs these checks automatically for every pull request, regardless of its target branch. To run the same verification locally, install from the lockfiles with `uv sync --locked` and `npm --prefix frontend ci`, then run `uv run python scripts/verify.py` from the repository root. No Gemini key, `.env` file, or other live provider credentials are needed.
 
+### Render Free educational preview
+
+Render Free is only a disposable educational preview, not durable product hosting or a production service. The [Render Free fact check](_docs/render-free-demo.md) explains the ephemeral SQLite data-loss behavior and current platform limits. A live service must use fabricated data only and display the reset warning; never enter real or sensitive data.
+
+The preview uses a single Docker web service built from `render.Dockerfile`, which serves the frontend and API on the same origin. It needs no Gemini key for the inventory walkthrough. Use Render's generated `onrender.com` address; no custom domain, persistent disk, paid add-on, or automatic deployment is required. Set the service's health-check path to `/ready`, which checks database connectivity. The image listens on Render's `PORT` (default `10000`) and stores SQLite at `/tmp/savorloop.db`, which is ephemeral. Until a live URL and successful runtime checks are recorded, no deployment is claimed.
+
 The backend uses `DATABASE_URL` for its SQLAlchemy connection. Its local default is `sqlite:///./savorloop.db`, which creates `savorloop.db` in the process working directory. To use a different local SQLite file in PowerShell, set `$env:DATABASE_URL = "sqlite:///./local.db"` before starting the backend.
 
 ### Gemini recipe suggestions

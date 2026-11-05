@@ -1,0 +1,72 @@
+receivers:
+  otlp:
+    protocols:
+      http:
+        endpoint: 0.0.0.0:4318
+        cors:
+          allowed_origins:
+            - http://localhost:5173
+            - http://127.0.0.1:5173
+            - http://localhost:8080
+            - http://127.0.0.1:8080
+
+processors:
+  memory_limiter:
+    check_interval: 1s
+    limit_mib: 256
+    spike_limit_mib: 64
+  transform/privacy:
+    error_mode: propagate
+    trace_statements:
+      - context: span
+        statements:
+          - keep_keys(span.attributes, ["operation.name", "http.request.method", "http.route", "http.response.status_code", "ai.attempt", "validation.result", "error.category"])
+      - context: resource
+        statements:
+          - keep_keys(resource.attributes, ["service.name", "service.version", "deployment.environment.name"])
+      - context: spanevent
+        statements:
+          - keep_keys(attributes, [])
+    metric_statements:
+      - context: datapoint
+        statements:
+          - keep_keys(datapoint.attributes, ["operation", "status"])
+      - context: resource
+        statements:
+          - keep_keys(resource.attributes, ["service.name", "service.version", "deployment.environment.name"])
+    log_statements:
+      - context: log
+        statements:
+          - keep_keys(log.attributes, ["operation.name", "status", "duration_ms", "error.category", "trace_id"])
+      - context: resource
+        statements:
+          - keep_keys(resource.attributes, ["service.name", "service.version", "deployment.environment.name"])
+  batch:
+    timeout: 1s
+
+exporters:
+  otlp/tempo:
+    endpoint: tempo:4317
+    tls:
+      insecure: true
+  otlphttp/loki:
+    endpoint: http://loki:3100/otlp
+  prometheus:
+    endpoint: 0.0.0.0:9464
+  debug:
+    verbosity: basic
+
+service:
+  pipelines:
+    traces:
+      receivers: [otlp]
+      processors: [memory_limiter, transform/privacy, batch]
+      exporters: [otlp/tempo, debug]
+    metrics:
+      receivers: [otlp]
+      processors: [memory_limiter, transform/privacy, batch]
+      exporters: [prometheus, debug]
+    logs:
+      receivers: [otlp]
+      processors: [memory_limiter, transform/privacy, batch]
+      exporters: [otlphttp/loki, debug]

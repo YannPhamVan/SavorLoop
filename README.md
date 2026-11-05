@@ -24,6 +24,8 @@ The application includes a structured single-user inventory, server-side natural
 
 Native-setup prerequisites: Python 3.11 or newer with [uv](https://docs.astral.sh/uv/), and Node.js with npm.
 
+The optional [local observability stack](observability/README.md) instruments the browser and backend natural-language inventory update using OpenTelemetry and Grafana. It is separate from the application Compose project and is bound to localhost only.
+
 ### Run the complete app with Docker Compose
 
 Prerequisite: Docker Engine or Docker Desktop with the Compose plugin. From the repository root, build and start the frontend and backend:

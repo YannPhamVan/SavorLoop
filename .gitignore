@@ -1,5 +1,6 @@
 .venv/
 .env
+observability/.env
 __pycache__/
 .pytest_cache/
 *.py[cod]

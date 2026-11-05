@@ -5,6 +5,13 @@ WORKDIR /app/frontend
 COPY frontend/package.json frontend/package-lock.json ./
 RUN npm ci
 
+ARG VITE_OTEL_EXPORTER_OTLP_ENDPOINT=
+ARG VITE_SAVORLOOP_ENVIRONMENT=render
+ARG RENDER_GIT_COMMIT=local
+ENV VITE_OTEL_EXPORTER_OTLP_ENDPOINT=$VITE_OTEL_EXPORTER_OTLP_ENDPOINT \
+    VITE_SAVORLOOP_ENVIRONMENT=$VITE_SAVORLOOP_ENVIRONMENT \
+    VITE_SAVORLOOP_VERSION=$RENDER_GIT_COMMIT
+
 COPY frontend/ ./
 ARG VITE_EPHEMERAL_DEMO=true
 RUN npm run build
@@ -18,7 +25,8 @@ WORKDIR /app
 
 ENV UV_COMPILE_BYTECODE=1 \
     UV_LINK_MODE=copy \
-    DATABASE_URL=sqlite:////tmp/savorloop.db
+    DATABASE_URL=sqlite:////tmp/savorloop.db \
+    SAVORLOOP_ENVIRONMENT=render
 
 COPY pyproject.toml uv.lock ./
 RUN uv sync --frozen --no-dev --no-install-project

@@ -61,6 +61,59 @@ describe("ephemeral demo notice", () => {
   });
 });
 
+describe("natural-language inventory update", () => {
+  it("shows a successful result and propagates browser trace context", async () => {
+    fetchMock.mockImplementation(async (input, init) => {
+      const url = String(input);
+      const method = init?.method ?? "GET";
+      if (url === "/api/inventory" && method === "GET") return jsonResponse([]);
+      if (url === "/api/inventory/natural-language" && method === "POST") {
+        return jsonResponse({ status: "updated", message: "Inventory updated.", updated_count: 1 });
+      }
+      throw new Error(`Unexpected fetch: ${method} ${url}`);
+    });
+
+    render(<App />);
+    fireEvent.change(screen.getByLabelText("Describe the stock change"), {
+      target: { value: "Mark fabricated basil unavailable" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Update stock" }));
+
+    expect(await screen.findByText("Inventory updated.")).toBeTruthy();
+    const request = callsTo("/api/inventory/natural-language", "POST")[0][1];
+    const headers = request?.headers as Record<string, string>;
+    expect(headers.traceparent).toMatch(/^00-[0-9a-f]{32}-[0-9a-f]{16}-01$/);
+  });
+
+  it("shows an AI-validation failure without reporting a successful update", async () => {
+    fetchMock.mockImplementation(async (input, init) => {
+      const url = String(input);
+      const method = init?.method ?? "GET";
+      if (url === "/api/inventory" && method === "GET") return jsonResponse([]);
+      if (url === "/api/inventory/natural-language" && method === "POST") {
+        return {
+          ok: false,
+          json: async () => ({
+            detail: "I couldn't safely interpret that request. Restate it with an item name and a supported change.",
+          }),
+        } as Response;
+      }
+      throw new Error(`Unexpected fetch: ${method} ${url}`);
+    });
+
+    render(<App />);
+    fireEvent.change(screen.getByLabelText("Describe the stock change"), {
+      target: { value: "Use a fabricated item" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Update stock" }));
+
+    expect((await screen.findByRole("alert")).textContent).toContain("couldn't safely interpret");
+    expect(screen.queryByText("Inventory updated.")).toBeNull();
+    const headers = callsTo("/api/inventory/natural-language", "POST")[0][1]?.headers as Record<string, string>;
+    expect(headers.traceparent).toMatch(/^00-[0-9a-f]{32}-[0-9a-f]{16}-01$/);
+  });
+});
+
 describe("Cooking Notebook UI", () => {
   it("keeps a suggestion out of the notebook until confirmation and submits only selected liked adjustments", async () => {
     let savedNotebook: Array<{

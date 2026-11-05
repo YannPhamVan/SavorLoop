@@ -1,11 +1,14 @@
 from collections.abc import Iterator
 from contextlib import asynccontextmanager
 from pathlib import Path
+from time import perf_counter
 
 from fastapi import Depends, FastAPI, HTTPException, Request, Response, status
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
+from opentelemetry import propagate
+from opentelemetry.trace import SpanKind, Status, StatusCode
 from sqlalchemy import select, text
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from sqlalchemy.orm import Session, selectinload
@@ -42,6 +45,7 @@ from backend.app.recipe_suggestions import (
     RecipeSuggestionService,
 )
 from backend.app.schemas import IngredientRead, IngredientWrite
+from backend.app.telemetry import Telemetry, configured_telemetry
 
 
 @asynccontextmanager
@@ -53,6 +57,7 @@ async def lifespan(_: FastAPI):
 app = FastAPI(title="SavorLoop API", lifespan=lifespan)
 app.state.inventory_interpreter = configured_inventory_interpreter()
 app.state.recipe_suggester = RecipeSuggestionService(GeminiRecipeProvider())
+app.state.telemetry = configured_telemetry()
 
 
 def mount_frontend(application: FastAPI, frontend_directory: Path) -> None:
@@ -84,6 +89,66 @@ def get_inventory_interpreter(request: Request) -> InventoryInterpreter:
 
 def get_recipe_suggester(request: Request) -> RecipeSuggestionService:
     return request.app.state.recipe_suggester
+
+
+def get_telemetry(request: Request) -> Telemetry:
+    return request.app.state.telemetry
+
+
+@app.middleware("http")
+async def instrument_inventory_update(request: Request, call_next):
+    if request.method != "POST" or request.url.path != "/api/inventory/natural-language":
+        return await call_next(request)
+
+    telemetry: Telemetry = request.app.state.telemetry
+    started_at = perf_counter()
+    status_code = status.HTTP_500_INTERNAL_SERVER_ERROR
+    parent_context = propagate.extract(request.headers)
+    span_attributes = {
+        "operation.name": "inventory_update",
+        "http.request.method": "POST",
+        "http.route": "/api/inventory/natural-language",
+    }
+
+    with telemetry.tracer.start_as_current_span(
+        "inventory.request",
+        context=parent_context,
+        kind=SpanKind.SERVER,
+        attributes=span_attributes,
+        record_exception=False,
+        set_status_on_exception=False,
+    ) as request_span:
+        try:
+            response = await call_next(request)
+            status_code = response.status_code
+            with telemetry.tracer.start_as_current_span(
+                "inventory.response",
+                attributes={"http.response.status_code": status_code},
+            ):
+                pass
+            return response
+        except Exception:
+            request.state.telemetry_error_category = "internal"
+            request_span.set_status(Status(StatusCode.ERROR))
+            raise
+        finally:
+            duration_seconds = perf_counter() - started_at
+            error_category = getattr(request.state, "telemetry_error_category", None)
+            if status_code >= 400 and error_category is None:
+                error_category = (
+                    "request_validation"
+                    if status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
+                    else "request_failed"
+                )
+            telemetry.record_inventory_update(
+                status="error" if status_code >= 400 else "success",
+                duration_seconds=duration_seconds,
+                error_category=error_category,
+            )
+            request_span.set_attribute("http.response.status_code", status_code)
+            if status_code >= 400:
+                request_span.set_attribute("error.category", error_category or "request_failed")
+                request_span.set_status(Status(StatusCode.ERROR))
 
 
 @app.get("/health")
@@ -208,31 +273,53 @@ def create_recipe_suggestion(
 @app.post("/api/inventory/natural-language", response_model=InventoryUpdateResult)
 def update_inventory_from_natural_language(
     update_request: InventoryUpdateRequest,
+    request: Request,
     session: Session = Depends(get_session),
     interpreter: InventoryInterpreter = Depends(get_inventory_interpreter),
+    telemetry: Telemetry = Depends(get_telemetry),
 ) -> InventoryUpdateResult:
     correction: str | None = None
     validated_changes = None
 
     for attempt in range(2):
-        try:
-            model_output = interpreter.interpret(update_request.text, correction)
-        except Exception as exc:
-            detail = (
-                "Natural-language updates are not configured or are temporarily unavailable. "
-                "Use the inventory controls instead."
-            )
-            raise HTTPException(status_code=503, detail=detail) from exc
+        with telemetry.tracer.start_as_current_span(
+            "inventory.update.provider",
+            attributes={"ai.attempt": attempt + 1},
+            record_exception=False,
+            set_status_on_exception=False,
+        ) as provider_span:
+            try:
+                model_output = interpreter.interpret(update_request.text, correction)
+            except Exception as exc:
+                provider_span.set_attribute("error.category", "provider_unavailable")
+                provider_span.set_status(Status(StatusCode.ERROR))
+                request.state.telemetry_error_category = "provider_unavailable"
+                detail = (
+                    "Natural-language updates are not configured or are temporarily unavailable. "
+                    "Use the inventory controls instead."
+                )
+                raise HTTPException(status_code=503, detail=detail) from exc
 
-        try:
-            plan = parse_inventory_plan(model_output)
-            validated_changes = validate_inventory_plan(session, plan)
-            break
-        except InventoryOperationRejected as exc:
-            session.rollback()
-            if attempt == 1:
-                raise HTTPException(status_code=422, detail=str(exc)) from exc
-            correction = str(exc)
+        with telemetry.tracer.start_as_current_span(
+            "inventory.update.validation",
+            attributes={"ai.attempt": attempt + 1},
+            record_exception=False,
+            set_status_on_exception=False,
+        ) as validation_span:
+            try:
+                plan = parse_inventory_plan(model_output)
+                validated_changes = validate_inventory_plan(session, plan)
+                validation_span.set_attribute("validation.result", "accepted")
+                break
+            except InventoryOperationRejected as exc:
+                validation_span.set_attribute("validation.result", "rejected")
+                validation_span.set_attribute("error.category", "ai_validation")
+                validation_span.set_status(Status(StatusCode.ERROR))
+                session.rollback()
+                if attempt == 1:
+                    request.state.telemetry_error_category = "ai_validation"
+                    raise HTTPException(status_code=422, detail=str(exc)) from exc
+                correction = str(exc)
 
     if validated_changes is None:
         raise HTTPException(status_code=422, detail="The inventory update could not be validated.")
@@ -245,14 +332,22 @@ def update_inventory_from_natural_language(
         else:
             ingredient.quantity = (ingredient.quantity or 0) - (operation.amount or 0)
 
-    try:
-        session.commit()
-    except SQLAlchemyError as exc:
-        session.rollback()
-        raise HTTPException(
-            status_code=503,
-            detail="Inventory could not be updated. No changes were saved; try again.",
-        ) from exc
+    with telemetry.tracer.start_as_current_span(
+        "inventory.update.database.write",
+        record_exception=False,
+        set_status_on_exception=False,
+    ) as database_span:
+        try:
+            session.commit()
+        except SQLAlchemyError as exc:
+            database_span.set_attribute("error.category", "database")
+            database_span.set_status(Status(StatusCode.ERROR))
+            session.rollback()
+            request.state.telemetry_error_category = "database"
+            raise HTTPException(
+                status_code=503,
+                detail="Inventory could not be updated. No changes were saved; try again.",
+            ) from exc
 
     return InventoryUpdateResult(
         status="updated",

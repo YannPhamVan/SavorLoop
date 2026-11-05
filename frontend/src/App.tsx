@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import type { FormEvent } from "react";
+import { fetchInventoryUpdate } from "./telemetry";
 
 type IngredientCategory = "pantry_staple" | "rotating";
 type CategoryFilter = "all" | IngredientCategory;
@@ -321,11 +322,7 @@ export default function App({
     setUpdateStatus({ kind: "pending", message: "Checking your update..." });
 
     try {
-      const response = await fetch("/api/inventory/natural-language", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ text: naturalRequest }),
-      });
+      const response = await fetchInventoryUpdate(naturalRequest);
       if (!response.ok) throw new Error(await readError(response));
 
       const result = await response.json() as InventoryUpdateResult;

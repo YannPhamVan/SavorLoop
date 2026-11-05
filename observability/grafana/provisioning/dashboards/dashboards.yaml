@@ -1,0 +1,12 @@
+apiVersion: 1
+
+providers:
+  - name: SavorLoop
+    orgId: 1
+    folder: SavorLoop
+    type: file
+    disableDeletion: true
+    editable: false
+    options:
+      path: /etc/grafana/provisioning/dashboards
+      foldersFromFilesStructure: false

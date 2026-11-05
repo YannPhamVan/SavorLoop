@@ -5,9 +5,15 @@ services:
       dockerfile: backend/Dockerfile
     environment:
       DATABASE_URL: sqlite:////data/savorloop.db
+      OTEL_EXPORTER_OTLP_ENDPOINT: ${OTEL_EXPORTER_OTLP_ENDPOINT:-}
+      SAVORLOOP_INVENTORY_INTERPRETER: ${SAVORLOOP_INVENTORY_INTERPRETER:-}
+      SAVORLOOP_ENVIRONMENT: ${SAVORLOOP_ENVIRONMENT:-local}
+      SAVORLOOP_VERSION: ${SAVORLOOP_VERSION:-local}
     ports:
       - "127.0.0.1:8000:8000"
       - "127.0.0.1:8080:80"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     volumes:
       - database:/data
     healthcheck:
@@ -25,6 +31,10 @@ services:
     build:
       context: .
       dockerfile: frontend/Dockerfile
+      args:
+        VITE_OTEL_EXPORTER_OTLP_ENDPOINT: ${VITE_OTEL_EXPORTER_OTLP_ENDPOINT:-}
+        VITE_SAVORLOOP_ENVIRONMENT: ${SAVORLOOP_ENVIRONMENT:-local}
+        VITE_SAVORLOOP_VERSION: ${SAVORLOOP_VERSION:-local}
     network_mode: service:backend
     depends_on:
       backend:

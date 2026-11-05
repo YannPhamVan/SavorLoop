@@ -14,11 +14,11 @@ The MVP has no accounts, shared inventory, initial taste questionnaire, recipe c
 
 ## Planned stack
 
-Lovable-generated React/TypeScript frontend, FastAPI backend, SQLAlchemy, SQLite, and a configurable LLM provider. SQLite is the initial database; data access stays behind SQLAlchemy. Hosting and telemetry providers remain undecided until their persistence, automation, and observability support are checked.
+Lovable-generated React/TypeScript frontend, FastAPI backend, SQLAlchemy, SQLite, and a configurable LLM provider. SQLite is the initial database; data access stays behind SQLAlchemy. Render Free is selected only for a disposable educational preview; it does not satisfy the product's durable-hosting requirement.
 
 ## Project status
 
-The application includes a structured single-user inventory, server-side natural-language inventory updates, on-demand Gemini recipe suggestions, and a Cooking Notebook. Suggestions are validated and remain transient; a recipe enters the Notebook only after the user confirms it was cooked. Attempts preserve ratings and feedback, and only highly rated recipes and explicitly liked adjustments inform later suggestions. Authentication and deployment are not implemented.
+The application includes a structured single-user inventory, server-side natural-language inventory updates, on-demand Gemini recipe suggestions, and a Cooking Notebook. Suggestions are validated and remain transient; a recipe enters the Notebook only after the user confirms it was cooked. Attempts preserve ratings and feedback, and only highly rated recipes and explicitly liked adjustments inform later suggestions. Authentication and deployment are not implemented. A Render Free preview is not deployed; its ephemeral filesystem can erase SQLite data, so it is for fabricated disposable data only. See the [Render Free educational-preview facts and authorization gate](_docs/render-free-demo.md).
 
 ## Local setup
 
@@ -135,6 +135,7 @@ Open the local URL printed by Vite. The development server proxies `/api` reques
 - [Product specification](_docs/product-spec.md): current behavior and acceptance rules.
 - [Task backlog](_docs/tasks.md): task definitions, acceptance criteria, evidence, dependencies, priorities, and estimates. [GitHub Issues](https://github.com/YannPhamVan/SavorLoop/issues) is the public execution tracker; each task links to its issue.
 - [Evaluation and roadmap](_docs/evaluation.md): rubric mapping, review findings, score paths, estimates, and open decisions.
+- [Render Free preview](_docs/render-free-demo.md): dated platform facts, ephemeral-data limits, CI/CD status, and deployment authorization gate.
 - [Agent team](_docs/agent-team.md): roles, permissions, and collaboration boundaries.
 - [Agent process](_docs/agent-process.md): issue-driven implementation and evidence workflow.
 - [Initial plan](_docs/plan.md): original brainstorming and decisions, with a dated status addendum.

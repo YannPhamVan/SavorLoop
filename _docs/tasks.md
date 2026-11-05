@@ -117,18 +117,20 @@ Acceptance criteria:
 - Workflow instructions or README point to the local equivalent command.
 Evidence: Workflow file and passing PR run URL.
 
-## 10. Qualify a host and deploy with a rollback path ([#10](https://github.com/YannPhamVan/SavorLoop/issues/10))
-Goal: Make SavorLoop publicly accessible without losing SQLite data.
-Description: Compare candidate hosts before selection against current persistent-volume guarantees, redeploy behavior, GitHub Actions automation, rollback, cost/limits, and OTLP compatibility. With owner approval, deploy the Compose-compatible app, verify retained data and health checks, and document how to roll back; add automatic deployment only if supported and authorized.
+## 10. Qualify and optionally deploy an ephemeral educational demo on Render Free ([#10](https://github.com/YannPhamVan/SavorLoop/issues/10))
+Goal: Document a no-cost educational preview without presenting it as durable hosting or production deployment.
+Description: Render Free is selected for a narrow disposable demonstration. Record dated official limits, data-loss behavior, rollback limitations, and the repository's actual CI/CD status. Live provisioning and demonstration remain blocked until separate explicit owner authorization; the product's durable-hosting requirement and local Compose persistence are unchanged.
 Priority: Useful score improvement
 Estimate: 1.5 h
-Dependencies: T7, T9; owner approval and deployment secrets
+Dependencies: T7, T9; separate owner authorization for any account, service, resource, domain, secret, or deployment action
 Acceptance criteria:
-- The provider decision cites current documentation/evidence for persistent SQLite storage and telemetry/deploy support.
-- Public URL or clear deployment demonstration works and data survives the documented redeploy/restart test.
-- A rollback procedure is tested or clearly demonstrated; no deployment is claimed before verification.
-- CI-only, auto-deploy, and dev-auto/prod-manual are accurately distinguished for the rubric.
-Evidence: Provider decision note, public URL/demo, health check, persistence proof, and rollback record.
+- The [Render Free fact check](render-free-demo.md) cites current official documentation and accurately states spin-down, startup, ephemeral SQLite loss, no persistent disk, no data-retention guarantee, and lack of production suitability.
+- It records the $0 Free compute plan without claiming all workspace use is unconditionally free, and covers the monthly instance-hour allowance, included bandwidth/build-pipeline usage and outcomes, platform restarts, and single-instance limit.
+- Until separate explicit authorization, all live deployment/demo criteria remain BLOCKED; no Render account/service/resource, domain, secret, or deployment is created or handled, and the issue stays open.
+- After authorization only, a public demo can be checked for `/health`, database-aware `/ready`, and adding/viewing one fabricated disposable inventory item while active, with a prominent ephemeral-data warning.
+- CI-only behavior is evidenced as PR checks in [#9](https://github.com/YannPhamVan/SavorLoop/issues/9) and [PR #16](https://github.com/YannPhamVan/SavorLoop/pull/16); CD is not claimed without service/workflow evidence.
+- Render's documented rollback limit is distinguished from tested rollback and from data recovery; no tested rollback, data recovery, production suitability, or evaluation score is claimed.
+Evidence: Dated official-source fact check, [passing CI run](https://github.com/YannPhamVan/SavorLoop/actions/runs/40706899477), explicit live-action authorization gate, and runtime evidence only if separately authorized.
 
 ## 11. Instrument one private, correlated user journey ([#11](https://github.com/YannPhamVan/SavorLoop/issues/11))
 Goal: Collect and inspect structured logs, metrics, and distributed traces with a shared trace ID.

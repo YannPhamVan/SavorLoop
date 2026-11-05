@@ -5,24 +5,37 @@ SavorLoop is a single-user cooking assistant that helps turn ingredients already
 ## What it will do
 
 - Track pantry staples as available or unavailable, and rotating ingredients with optional quantities, units, and expiry dates.
-- Support conventional inventory editing and natural-language stock updates. AI may interpret a request, but deterministic backend code validates and applies every change.
+- Support conventional inventory editing and natural-language stock updates. AI may interpret a request, but deterministic backend code validates allowlisted changes and applies them atomically; rejected changes leave stored data unchanged.
 - Generate complete recipes on demand from current stock, including quantities, steps, serving count, missing ingredients, substitutions, and a short explanation.
 - Save a recipe only after the user confirms it was cooked, then retain ratings, comments, changes, substitutions, and attempt history.
 - Use a small, explainable selection of highly rated cooking history to inform later suggestions.
 
 The MVP has no accounts, shared inventory, initial taste questionnaire, recipe catalogue, or model training. Generated suggestions are not saved automatically.
 
-## Planned stack
+## Stack and hosting boundary
 
-Lovable-generated React/TypeScript frontend, FastAPI backend, SQLAlchemy, SQLite, and a configurable LLM provider. SQLite is the initial database; data access stays behind SQLAlchemy. Render Free is selected only for a disposable educational preview; it does not satisfy the product's durable-hosting requirement.
+React/TypeScript frontend, FastAPI backend, and SQLAlchemy over SQLite. Recipe suggestions use Google's Gemini API. SQLite is the initial database; data access stays behind SQLAlchemy. A Render Free service was used only for a disposable educational preview and is now suspended; it does not satisfy the product's durable-hosting requirement.
 
 ## Project status
 
 The application includes a structured single-user inventory, server-side natural-language inventory updates, on-demand Gemini recipe suggestions, and a Cooking Notebook. Suggestions are validated and remain transient; a recipe enters the Notebook only after the user confirms it was cooked. Attempts preserve ratings and feedback, and only highly rated recipes and explicitly liked adjustments inform later suggestions. Authentication is not implemented. The Render Free educational preview was deployed and verified on 2026-11-05, then suspended by the owner; its SQLite data was ephemeral and may have been lost. See the [Render Free educational-preview facts and limitations](_docs/render-free-demo.md).
 
-## Local setup
+## Prerequisites and one-command setup
 
-Native-setup prerequisites: Python 3.11 or newer with [uv](https://docs.astral.sh/uv/), and Node.js with npm.
+For the one-command app startup, install Docker Engine or Docker Desktop with the Compose plugin. From the repository root, run:
+
+```sh
+docker compose up --build
+```
+
+Open [http://localhost:8080](http://localhost:8080). This starts the frontend and backend with a local named SQLite volume. Recipe suggestions require a Gemini API key configured for the backend; this Compose configuration does not pass `GEMINI_API_KEY` to the backend, so inventory and notebook features work without that key. See the [Compose and backup instructions](#run-the-complete-app-with-docker-compose) before removing volumes.
+
+For native development and the test suite, use Python 3.11 or newer with [uv](https://docs.astral.sh/uv/) and Node.js 22.15 or newer with npm. The frontend's locked OpenTelemetry packages declare a Node 22.15 minimum. Install the lockfile-pinned dependencies from the repository root:
+
+```powershell
+uv sync --locked
+npm --prefix frontend ci
+```
 
 The optional [local observability stack](observability/README.md) instruments the browser and backend natural-language inventory update using OpenTelemetry and Grafana. It is separate from the application Compose project and is bound to localhost only.
 
@@ -78,9 +91,9 @@ The [CI workflow](.github/workflows/ci.yml) runs these checks automatically for 
 
 ### Render Free educational preview
 
-Render Free is only a disposable educational preview, not durable product hosting or a production service. The [Render Free fact check](_docs/render-free-demo.md) explains the ephemeral SQLite data-loss behavior and current platform limits. A live service must use fabricated data only and display the reset warning; never enter real or sensitive data.
+There is no active hosted demo: the Render Free preview was suspended by the owner after its documented verification. The [Render Free fact check](_docs/render-free-demo.md) records the historical runtime observations, suspension, ephemeral SQLite data-loss behavior, and platform limits. The former service was a disposable educational preview, not durable product hosting or a production service. Do not treat its historical URL as a live demo.
 
-The preview uses a single Docker web service built from `render.Dockerfile`, which serves the frontend and API on the same origin. It needs no Gemini key for the inventory walkthrough. It used Render's generated `onrender.com` address; no custom domain, persistent disk, paid add-on, or automatic deployment was configured. The service used manual deploys and its health-check path was `/ready`, which checks database connectivity. The image listens on Render's `PORT` (default `10000`) and stores SQLite at `/tmp/savorloop.db`, which is ephemeral. While active, `/health` and `/ready` returned `200`, and fabricated inventory items were added and viewed with a prominent data-loss warning. The owner later suspended the service; it is not currently offered as a live demo.
+For a keyless local inventory walkthrough, use the [demo-interpreter instructions](#gemini-recipe-suggestions) below to run the backend with `SAVORLOOP_INVENTORY_INTERPRETER=demo` and start the frontend. Then use a fabricated request such as `mark olive oil unavailable`. The demo interpreter is opt-in and limited; normal inventory controls work without an interpreter. For the app's complete local startup, use the Compose command above. Never use real or sensitive inventory data in demos.
 
 The backend uses `DATABASE_URL` for its SQLAlchemy connection. Its local default is `sqlite:///./savorloop.db`, which creates `savorloop.db` in the process working directory. To use a different local SQLite file in PowerShell, set `$env:DATABASE_URL = "sqlite:///./local.db"` before starting the backend.
 
@@ -124,31 +137,32 @@ The demo accepts requests such as `mark olive oil unavailable` and `use 50 g mus
 
 `GET /health` checks process liveness without touching the database. `GET /ready` executes a database connectivity check and returns HTTP 503 if it fails.
 
-For the Inventory screen, run the backend from the repository root and leave it running:
+For a keyless Inventory screen walkthrough, run the backend from the repository root and leave it running:
 
 ```powershell
-uv run --env-file .env uvicorn backend.app.main:app --reload
+$env:SAVORLOOP_INVENTORY_INTERPRETER = "demo"
+uv run uvicorn backend.app.main:app --reload
 ```
 
-In a second terminal, start the frontend:
+In a second terminal, start the frontend (if needed, install its dependencies from the repository root with `npm --prefix frontend ci`):
 
 ```powershell
-Set-Location frontend
-npm ci
-npm run dev
+npm --prefix frontend run dev
 ```
 
-Open the local URL printed by Vite. The development server proxies `/api` requests to `http://127.0.0.1:8000` by default; set `$env:SAVORLOOP_API_TARGET` before `npm run dev` to use another local API address. Inventory tables are created automatically in the configured SQLite database. Run the focused inventory API checks from the repository root with `uv run pytest backend/tests/test_inventory.py`.
+Open the local URL printed by Vite. The development server proxies `/api` requests to `http://127.0.0.1:8000` by default; set `$env:SAVORLOOP_API_TARGET` before `npm --prefix frontend run dev` to use another local API address. Inventory tables are created automatically in the configured SQLite database. Run the focused inventory API checks from the repository root with `uv run pytest backend/tests/test_inventory.py`.
 
 ## Project documents
 
 - [Product specification](_docs/product-spec.md): current behavior and acceptance rules.
 - [Task backlog](_docs/tasks.md): task definitions, acceptance criteria, evidence, dependencies, priorities, and estimates. [GitHub Issues](https://github.com/YannPhamVan/SavorLoop/issues) is the public execution tracker; each task links to its issue.
-- [Evaluation and roadmap](_docs/evaluation.md): rubric mapping, review findings, score paths, estimates, and open decisions.
-- [Render Free preview](_docs/render-free-demo.md): dated platform facts, ephemeral-data limits, CI/CD status, and deployment authorization gate.
+- [Evaluation evidence](_docs/evaluation.md): provisional criteria-to-evidence matrix, clean-checkout setup/test record, and explicit evidence gaps.
+- [Render Free preview](_docs/render-free-demo.md): dated platform facts, historical runtime observations, ephemeral-data limits, and current suspended status.
+- [Local observability](observability/README.md): local-only telemetry setup, dashboard, privacy boundaries, and hosted limitations.
+- [On-call drill](_docs/on-call-drill.md): isolated local alert and remediation drill with its recorded result.
 - [Agent team](_docs/agent-team.md): roles, permissions, and collaboration boundaries.
 - [Agent process](_docs/agent-process.md): issue-driven implementation and evidence workflow.
 - [Initial plan](_docs/plan.md): original brainstorming and decisions, with a dated status addendum.
 - [Repository instructions](AGENTS.md): project context and coding boundaries for coding agents.
 
-The evaluation checklist records the 12 criteria supplied for the 2026 AI Dev Tools Zoomcamp. Their official wording has not been independently re-verified in this repository.
+The [evaluation document](_docs/evaluation.md) treats the 12 criteria and point ranges as a working checklist only; the official evaluation wording has not been independently verified.

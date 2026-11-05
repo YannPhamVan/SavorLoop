@@ -1,3 +1,5 @@
+import os
+import sqlite3
 from collections.abc import Iterator
 from contextlib import asynccontextmanager
 from pathlib import Path
@@ -9,8 +11,8 @@ from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 from opentelemetry import propagate
 from opentelemetry.trace import SpanKind, Status, StatusCode
-from sqlalchemy import select, text
-from sqlalchemy.exc import IntegrityError, SQLAlchemyError
+from sqlalchemy import Engine, event, select, text
+from sqlalchemy.exc import IntegrityError, OperationalError, SQLAlchemyError
 from sqlalchemy.orm import Session, selectinload
 
 from backend.app.database import engine
@@ -34,6 +36,7 @@ from backend.app.notebook import (
     recipe_to_read,
     select_recipe_feedback,
 )
+from backend.app.on_call import OnCallAgent, ReadinessAlert, read_database_readiness
 from backend.app.recipe_suggestions import (
     RecipeAPIKeyMissing,
     RecipeInventoryUnavailable,
@@ -58,6 +61,38 @@ app = FastAPI(title="SavorLoop API", lifespan=lifespan)
 app.state.inventory_interpreter = configured_inventory_interpreter()
 app.state.recipe_suggester = RecipeSuggestionService(GeminiRecipeProvider())
 app.state.telemetry = configured_telemetry()
+
+
+def require_on_call_test_mode() -> None:
+    if (
+        os.environ.get("SAVORLOOP_ON_CALL_TEST_MODE") != "1"
+        or engine.dialect.name != "sqlite"
+    ):
+        raise HTTPException(status_code=404, detail="Not found")
+
+
+def arm_stale_connection_readiness_failure(engine: Engine) -> None:
+    with engine.connect() as connection:
+        stale_connection = connection.connection.driver_connection
+
+    @event.listens_for(engine, "before_cursor_execute")
+    def fail_stale_readiness_probe(
+        db_connection,
+        _cursor,
+        statement,
+        parameters,
+        _context,
+        _executemany,
+    ) -> None:
+        if (
+            db_connection.connection.driver_connection is stale_connection
+            and statement.strip().upper() == "SELECT 1"
+        ):
+            raise OperationalError(
+                statement,
+                parameters,
+                sqlite3.OperationalError("synthetic stale pooled connection"),
+            )
 
 
 def mount_frontend(application: FastAPI, frontend_directory: Path) -> None:
@@ -158,12 +193,25 @@ def health() -> dict[str, str]:
 
 @app.get("/ready")
 def ready() -> dict[str, str]:
-    try:
-        with engine.connect() as connection:
-            connection.execute(text("SELECT 1"))
-    except SQLAlchemyError as exc:
-        raise HTTPException(status_code=503, detail="Database unavailable") from exc
+    if not read_database_readiness(engine).ready:
+        raise HTTPException(status_code=503, detail="Database unavailable")
     return {"status": "ready"}
+
+
+@app.post("/internal/ops/test/arm-stale-readiness-failure", include_in_schema=False)
+def arm_test_readiness_failure(request: Request) -> dict[str, str]:
+    require_on_call_test_mode()
+    if getattr(request.app.state, "on_call_fault_armed", False):
+        raise HTTPException(status_code=409, detail="Test failure already armed")
+    arm_stale_connection_readiness_failure(engine)
+    request.app.state.on_call_fault_armed = True
+    return {"status": "armed"}
+
+
+@app.post("/internal/ops/test/alert", include_in_schema=False)
+def dispatch_test_alert(alert: ReadinessAlert, request: Request) -> dict:
+    require_on_call_test_mode()
+    return OnCallAgent(engine).handle_alert(alert)
 
 
 @app.get("/api/inventory", response_model=list[IngredientRead])

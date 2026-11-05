@@ -1,0 +1,16 @@
+services:
+  backend:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    environment:
+      DATABASE_URL: sqlite:////data/issue12-drill.sqlite3
+      SAVORLOOP_ON_CALL_TEST_MODE: "1"
+    ports:
+      - "127.0.0.1:18012:8000"
+    volumes:
+      - issue12-drill-data:/data
+
+volumes:
+  issue12-drill-data:
+    name: savorloop-issue12-drill-data

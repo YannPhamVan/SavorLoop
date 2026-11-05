@@ -26,6 +26,8 @@ Native-setup prerequisites: Python 3.11 or newer with [uv](https://docs.astral.s
 
 The optional [local observability stack](observability/README.md) instruments the browser and backend natural-language inventory update using OpenTelemetry and Grafana. It is separate from the application Compose project and is bound to localhost only.
 
+The [issue 12 on-call drill](_docs/on-call-drill.md) is a separate, local-only Docker/SQLite test. It uses synthetic data and a test-only readiness failure; it is not connected to production or an external alert service.
+
 ### Run the complete app with Docker Compose
 
 Prerequisite: Docker Engine or Docker Desktop with the Compose plugin. From the repository root, build and start the frontend and backend:

@@ -27,6 +27,8 @@ The owner authorized use of their existing Render account and provisioning/deplo
 
 This verifies behavior only while the instance was active. It does not test a spin-down, restart, redeploy, data loss, data recovery, or rollback. The service has one observed manual deployment; Auto-Deploy is Off. No persistent disk, paid plan/add-on, custom domain, or application secret was configured.
 
+**Current service state (2026-11-05):** At the owner's request, the Render Dashboard was used to suspend the service. It reports **Suspended by you** and states that suspended services are not billed. The public URL was not requested again after suspension, to avoid waking or changing the state of the Free service. Suspension/restart may discard its ephemeral SQLite contents; no retention or recovery is claimed. Resume is a separate dashboard action and was not performed.
+
 The durable local development path remains [Docker Compose with its named SQLite volume](../README.md); that local persistence does not establish hosted persistence. This preview makes no production-suitability, uptime, availability, performance, data-retention, recovery, rollback-test, or evaluation-score guarantee.
 
 ## Official sources

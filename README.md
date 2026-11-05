@@ -14,11 +14,11 @@ The MVP has no accounts, shared inventory, initial taste questionnaire, recipe c
 
 ## Stack and hosting boundary
 
-React/TypeScript frontend, FastAPI backend, and SQLAlchemy over SQLite. Recipe suggestions use Google's Gemini API. SQLite is the initial database; data access stays behind SQLAlchemy. A Render Free service was used only for a disposable educational preview and is now suspended; it does not satisfy the product's durable-hosting requirement.
+React/TypeScript frontend, FastAPI backend, and SQLAlchemy over SQLite. Recipe suggestions use Google's Gemini API. SQLite is the initial database; data access stays behind SQLAlchemy. A Render Free service is used only for a disposable educational preview; it does not satisfy the product's durable-hosting requirement.
 
 ## Project status
 
-The application includes a structured single-user inventory, server-side natural-language inventory updates, on-demand Gemini recipe suggestions, and a Cooking Notebook. Suggestions are validated and remain transient; a recipe enters the Notebook only after the user confirms it was cooked. Attempts preserve ratings and feedback, and only highly rated recipes and explicitly liked adjustments inform later suggestions. Authentication is not implemented. The Render Free educational preview was deployed and verified on 2026-11-05, then suspended by the owner; its SQLite data was ephemeral and may have been lost. See the [Render Free educational-preview facts and limitations](_docs/render-free-demo.md).
+The application includes a structured single-user inventory, server-side natural-language inventory updates, on-demand Gemini recipe suggestions, and a Cooking Notebook. Suggestions are validated and remain transient; a recipe enters the Notebook only after the user confirms it was cooked. Attempts preserve ratings and feedback, and only highly rated recipes and explicitly liked adjustments inform later suggestions. Authentication is not implemented. The Render Free educational preview was deployed, verified, and reactivated on 2026-11-05; its SQLite data is ephemeral. See the [Render Free educational-preview facts and limitations](_docs/render-free-demo.md).
 
 Task implementation and QA status are recorded in the [public GitHub Issues tracker](https://github.com/YannPhamVan/SavorLoop/issues). This application-status summary does not imply that an open issue has passed QA or that the project has earned an evaluation score.
 
@@ -87,13 +87,13 @@ uv run python scripts/verify.py
 
 This single command runs the backend unit/integration suite, frontend tests, and frontend production build. It returns a nonzero exit code if any check fails. The backend and frontend tests use isolated test data and stub providers, so no `.env` file or live AI credentials are needed. CI-compatible JUnit reports are written to `.test-results/backend.xml` and `.test-results/frontend.xml`; this generated directory is git-ignored.
 
-### Continuous integration
+### Continuous integration and continuous deployment (CI/CD)
 
-The [CI workflow](.github/workflows/ci.yml) runs these checks automatically for every pull request, regardless of its target branch. To run the same verification locally, install from the lockfiles with `uv sync --locked` and `npm --prefix frontend ci`, then run `uv run python scripts/verify.py` from the repository root. No Gemini key, `.env` file, or other live provider credentials are needed.
+The [CI/CD workflow](.github/workflows/ci.yml) runs verification checks automatically for every pull request and push to `main`. When checks pass on `main`, it triggers automated deployment to the development environment via Render deploy hook. A manual workflow dispatch trigger (`workflow_dispatch`) enables gated deployment to the production environment. To run the same verification locally, install from the lockfiles with `uv sync --locked` and `npm --prefix frontend ci`, then run `uv run python scripts/verify.py` from the repository root. No Gemini key, `.env` file, or other live provider credentials are needed.
 
 ### Render Free educational preview
 
-There is no active hosted demo: the Render Free preview was suspended by the owner after its documented verification. The [Render Free fact check](_docs/render-free-demo.md) records the historical runtime observations, suspension, ephemeral SQLite data-loss behavior, and platform limits. The former service was a disposable educational preview, not durable product hosting or a production service. Do not treat its historical URL as a live demo.
+The educational preview is deployed on Render Free and reachable at [https://savorloop-free-demo.onrender.com](https://savorloop-free-demo.onrender.com). The [Render Free fact check](_docs/render-free-demo.md) records platform observations, ephemeral SQLite data-loss behavior, and limits. The service is a disposable educational preview, not durable product hosting or a production service.
 
 For a keyless local inventory walkthrough, use the [demo-interpreter instructions](#gemini-recipe-suggestions) below to run the backend with `SAVORLOOP_INVENTORY_INTERPRETER=demo` and start the frontend. Then use a fabricated request such as `mark olive oil unavailable`. The demo interpreter is opt-in and limited; normal inventory controls work without an interpreter. For the app's complete local startup, use the Compose command above. Never use real or sensitive inventory data in demos.
 

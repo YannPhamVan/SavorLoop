@@ -130,7 +130,7 @@ Acceptance criteria:
 - A live demo URL opens, `/health` and database-aware `/ready` return success, and one fabricated disposable inventory item can be added and viewed while the service is active; the UI prominently warns of ephemeral data loss.
 - CI-only behavior is evidenced as PR checks in [#9](https://github.com/YannPhamVan/SavorLoop/issues/9) and [PR #16](https://github.com/YannPhamVan/SavorLoop/pull/16); the Render service's actual deploy mode is reported accurately.
 - Render's documented rollback limit is distinguished from tested rollback and from data recovery; no tested rollback, data recovery, production suitability, or evaluation score is claimed.
-Evidence: Dated official-source fact check, [passing CI run](https://github.com/YannPhamVan/SavorLoop/actions/runs/40706899477), explicit live-action authorization gate, and runtime evidence only if separately authorized.
+Evidence: [Dated official-source fact check](render-free-demo.md), [passing CI run](https://github.com/YannPhamVan/SavorLoop/actions/runs/40706899477), [live demo](https://savorloop-free-demo.onrender.com), HTTP 200 results for `/health` and `/ready`, and created/listed/rendered fabricated `Demo basil` item. No data-recovery or rollback test is claimed.
 
 ## 11. Instrument one private, correlated user journey ([#11](https://github.com/YannPhamVan/SavorLoop/issues/11))
 Goal: Collect and inspect structured logs, metrics, and distributed traces with a shared trace ID.

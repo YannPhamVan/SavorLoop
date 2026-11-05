@@ -24,5 +24,6 @@ See [`product-spec.md`](product-spec.md), [`tasks.md`](tasks.md), and [`evaluati
 ## Update — 2026-11-05
 
 - The owner selected Render Free for a no-cost, disposable educational preview. This does not replace the requirement that product hosting preserve SQLite data and is not production authorization.
-- The [Render Free fact check](render-free-demo.md) records current official limits, ephemeral data loss, and the separate authorization gate. No Render account, service, resource, domain, secret, or deployment has been created or handled.
-- The repository has PR-only CI, verified by merged [PR #16](https://github.com/YannPhamVan/SavorLoop/pull/16) and its [passing workflow run](https://github.com/YannPhamVan/SavorLoop/actions/runs/40706899477). CD remains unconfigured. Live preview criteria are blocked pending separate explicit owner authorization.
+- The [Render Free fact check](render-free-demo.md) records current official limits, ephemeral data loss, and the authorization boundary. On 2026-11-05, the owner authorized deployment using their existing account; no new account, custom domain, paid resource, or application secret was created or configured.
+- The public [Render Free preview](https://savorloop-free-demo.onrender.com) is live for fabricated disposable data. Runtime evidence and its limits are recorded in `render-free-demo.md`.
+- The repository has PR-only CI, verified by merged [PR #16](https://github.com/YannPhamVan/SavorLoop/pull/16) and its [passing workflow run](https://github.com/YannPhamVan/SavorLoop/actions/runs/40706899477). The Render service is CD with Auto-Deploy Off, so the observed deployment was manual.
